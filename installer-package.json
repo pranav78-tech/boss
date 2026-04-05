@@ -1,0 +1,17 @@
+{
+  "name": "ai-auto-marker-installer",
+  "version": "1.0.0",
+  "description": "Installer package for Windows V1 Windows App",
+  "type": "commonjs",
+  "main": "build-installer.js",
+  "scripts": {
+    "build": "node build-installer.js"
+  },
+  "keywords": [
+    "installer",
+    "ai",
+    "mcq"
+  ],
+  "author": "Windows V1 Team",
+  "license": "MIT"
+}

@@ -1,0 +1,20 @@
+
+> system-service-host@1.0.0 build
+> electron-builder --win --x64
+
+  ΓÇó electron-builder  version=26.8.1 os=10.0.26200
+  ΓÇó loaded configuration  file=package.json ("build" field)
+  ΓÇó executing @electron/rebuild  electronVersion=40.8.0 arch=x64 buildFromSource=false workspaceRoot=C:\Users\hp\Downloads\project-final-main (1)\project-final-main\windows-app projectDir=./ appDir=./
+  ΓÇó installing native dependencies  arch=x64
+  ΓÇó completed installing native dependencies
+  ΓÇó packaging       platform=win32 arch=x64 electron=40.8.0 appOutDir=dist\win-unpacked
+  ΓÇó searching for node modules  pm=npm searchDir=C:\Users\hp\Downloads\project-final-main (1)\project-final-main\windows-app
+  ΓÇó duplicate dependency references  dependencies=["once@1.4.0","once@1.4.0","bindings@1.5.0","bindings@1.5.0","@nut-tree-fork/shared@4.2.6","jimp@0.22.10","@jimp/custom@0.22.12","@jimp/custom@0.22.12","@jimp/utils@0.22.12","@jimp/custom@0.22.12","@jimp/utils@0.22.12","@jimp/custom@0.22.12","@jimp/utils@0.22.12","@jimp/custom@0.22.12","@jimp/utils@0.22.12","@jimp/custom@0.22.12","@jimp/plugin-blit@0.22.12","@jimp/plugin-resize@0.22.12","@jimp/plugin-scale@0.22.12","@jimp/utils@0.22.12","@jimp/custom@0.22.12","@jimp/plugin-crop@0.22.12","@jimp/plugin-resize@0.22.12","@jimp/plugin-scale@0.22.12","@jimp/utils@0.22.12","@jimp/custom@0.22.12","@jimp/utils@0.22.12","@jimp/custom@0.22.12","@jimp/utils@0.22.12","@jimp/custom@0.22.12","@jimp/utils@0.22.12","@jimp/custom@0.22.12","@jimp/utils@0.22.12","@jimp/custom@0.22.12","@jimp/plugin-rotate@0.22.12","@jimp/utils@0.22.12","@jimp/custom@0.22.12","@jimp/utils@0.22.12","@jimp/custom@0.22.12","@jimp/utils@0.22.12","@jimp/custom@0.22.12","@jimp/utils@0.22.12","@jimp/custom@0.22.12","@jimp/utils@0.22.12","@jimp/custom@0.22.12","@jimp/plugin-blit@0.22.12","@jimp/utils@0.22.12","@jimp/custom@0.22.12","@jimp/utils@0.22.12","@jimp/custom@0.22.12","@jimp/plugin-blit@0.22.12","@jimp/plugin-crop@0.22.12","@jimp/plugin-resize@0.22.12","@jimp/utils@0.22.12","@jimp/custom@0.22.12","@jimp/plugin-resize@0.22.12","@jimp/utils@0.22.12","@jimp/custom@0.22.12","@jimp/plugin-blur@0.22.12","@jimp/plugin-resize@0.22.12","@jimp/utils@0.22.12","@jimp/custom@0.22.12","@jimp/plugin-color@0.22.12","@jimp/plugin-resize@0.22.12","@jimp/utils@0.22.12","@jimp/custom@0.22.12","@jimp/utils@0.22.12","@jimp/custom@0.22.12","@jimp/custom@0.22.12","@jimp/utils@0.22.12","@jimp/custom@0.22.12","@jimp/utils@0.22.12","@jimp/custom@0.22.12","@jimp/utils@0.22.12","@jimp/custom@0.22.12","call-bind-apply-helpers@1.0.2","es-object-atoms@1.1.1","hasown@2.0.2","hasown@2.0.2","once@1.4.0"]
+  ΓÇó updating asar integrity executable resource  executablePath=dist\win-unpacked\RuntimeBroker.exe
+  ΓÇó default Electron icon is used  reason=application icon is not set
+  ΓÇó signing with signtool.exe  path=dist\win-unpacked\RuntimeBroker.exe
+  ΓÇó signing with signtool.exe  path=dist\win-unpacked\resources\app.asar.unpacked\node_modules\clipboardy\fallbacks\windows\clipboard_i686.exe
+  ΓÇó signing with signtool.exe  path=dist\win-unpacked\resources\app.asar.unpacked\node_modules\clipboardy\fallbacks\windows\clipboard_x86_64.exe
+  ΓÇó building        target=nsis file=dist\RuntimeBroker Setup 1.0.0.exe archs=x64 oneClick=true perMachine=false
+  ΓÇó signing with signtool.exe  path=dist\win-unpacked\resources\elevate.exe
+  Γ¿» allowToChangeInstallationDirectory makes sense only for assisted installer (please set oneClick to false)

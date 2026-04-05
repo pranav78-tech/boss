@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stealth Backup UI</title>
+  
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/tokyo-night-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #0f172a;
+      color: #f3f4f6;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+    
+    header {
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      padding: 12px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(96, 165, 250, 0.15);
+      flex-shrink: 0;
+      backdrop-filter: blur(10px);
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .header-title {
+      font-weight: 700;
+      font-size: 1.1rem;
+      letter-spacing: 2px;
+      background: linear-gradient(135deg, #60a5fa, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .connection-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #f87171;
+      display: inline-block;
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+    .connection-dot.connected { background: #4ade80; }
+    
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 0.5; }
+      50% { opacity: 1; }
+    }
+
+    .connection-label {
+      font-size: 10px;
+      color: #9ca3af;
+      letter-spacing: 1px;
+    }
+
+    .controls {
+      display: flex;
+      gap: 8px;
+    }
+
+    button {
+      padding: 6px 14px;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: 'Segoe UI', sans-serif;
+      font-size: 12px;
+    }
+
+    #btn-capture {
+      background: rgba(52, 211, 153, 0.15);
+      color: #34d399;
+      border: 1px solid rgba(52, 211, 153, 0.3);
+    }
+    #btn-capture:hover { background: rgba(52, 211, 153, 0.25); }
+    #btn-capture:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    #btn-clear {
+      background: rgba(248, 113, 113, 0.15);
+      color: #f87171;
+      border: 1px solid rgba(248, 113, 113, 0.3);
+    }
+    #btn-clear:hover { background: rgba(248, 113, 113, 0.25); }
+
+    .chat-section {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .placeholder-text {
+      text-align: center;
+      color: #4b5563;
+      margin-top: 80px;
+      font-size: 14px;
+      line-height: 2;
+    }
+
+    /* Card Styling */
+    .qa-card {
+      background: rgba(30, 41, 59, 0.8);
+      border: 1px solid rgba(96, 165, 250, 0.12);
+      border-radius: 10px;
+      padding: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      backdrop-filter: blur(5px);
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #60a5fa;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      padding-bottom: 10px;
+      margin-bottom: 14px;
+    }
+    .card-header .source-tag {
+      background: rgba(167, 139, 250, 0.15);
+      color: #a78bfa;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 9px;
+      letter-spacing: 1px;
+    }
+    
+    .loading-pulse {
+      animation: pulse-dot 1.2s infinite;
+      color: #fcd34d;
+    }
+
+    /* Markdown */
+    .markdown-body {
+      font-size: 13.5px;
+      line-height: 1.65;
+      color: rgba(255,255,255,0.92);
+    }
+    .markdown-body h1, .markdown-body h2, .markdown-body h3 {
+      color: #60a5fa;
+      margin-top: 12px;
+      margin-bottom: 6px;
+      font-size: 14.5px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      padding-bottom: 4px;
+    }
+    .markdown-body p { margin-bottom: 10px; }
+    .markdown-body strong { color: #fff; }
+    .markdown-body ul, .markdown-body ol { margin-left: 20px; margin-bottom: 10px; }
+    .markdown-body li { margin-bottom: 4px; }
+    .markdown-body code {
+      background: transparent;
+      font-family: 'Fira Code', Consolas, monospace;
+      font-size: 12px;
+      color: #fbbf24;
+    }
+    .markdown-body pre {
+      background: rgba(0, 0, 0, 0.25);
+      padding: 14px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      overflow-x: auto;
+      margin: 12px 0;
+      position: relative;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    .markdown-body pre code {
+      color: #e2e8f0;
+      background: transparent !important;
+      font-size: 12px;
+    }
+    .markdown-body blockquote {
+      border-left: 3px solid #4ade80;
+      padding-left: 10px;
+      margin: 10px 0;
+      color: rgba(255,255,255,0.7);
+      font-style: italic;
+    }
+
+    /* Inline copy button on code blocks */
+    .inline-btn-container {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      display: flex;
+      gap: 6px;
+      z-index: 10;
+    }
+    .code-action-btn {
+      background: rgba(0,0,0,0.6);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 4px;
+      padding: 3px 8px;
+      font-size: 9px;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-family: 'Segoe UI', sans-serif;
+    }
+    .code-action-btn:hover { background: rgba(96, 165, 250, 0.3); }
+    .code-action-btn.copied { background: #059669; border-color: #34d399; }
+
+  </style>
+  <script>
+    marked.setOptions({
+      highlight: function (code, lang) {
+        if (lang && hljs.getLanguage(lang)) {
+          return hljs.highlight(code, { language: lang }).value;
+        }
+        return hljs.highlightAuto(code).value;
+      }
+    });
+  </script>
+</head>
+<body>
+
+  <header>
+    <div class="header-left">
+      <div class="header-title">STEALTH BACKUP</div>
+      <span class="connection-dot" id="conn-dot"></span>
+      <span class="connection-label" id="conn-label">CONNECTING...</span>
+    </div>
+    <div class="controls">
+      <button id="btn-capture" onclick="captureFromBrowser()">📸 Capture This Screen</button>
+      <button id="btn-clear" onclick="clearChat()">🗑️ Clear</button>
+    </div>
+  </header>
+
+  <div class="chat-section" id="chat-container">
+    <div class="placeholder-text" id="placeholder">
+      ⏳ Waiting for AI responses...<br>
+      When the Electron app generates an answer, it will appear here in real-time.<br>
+      You can also capture your own screen using the button above.
+    </div>
+  </div>
+
+  <!-- Hidden canvas for browser-side screen capture -->
+  <canvas id="capture-canvas" style="display:none;"></canvas>
+
+  <script>
+    const chatContainer = document.getElementById('chat-container');
+    const placeholder = document.getElementById('placeholder');
+    const connDot = document.getElementById('conn-dot');
+    const connLabel = document.getElementById('conn-label');
+    
+    let attemptCount = 0;
+    
+    // Detect base URL
+    const BASE_URL = window.location.origin;
+
+    // ============ 1. LOAD HISTORY ON PAGE OPEN ============
+    async function loadHistory() {
+      try {
+        const res = await fetch(`${BASE_URL}/api/stealth-history`);
+        const data = await res.json();
+        if (data.success && data.history && data.history.length > 0) {
+          placeholder.style.display = 'none';
+          data.history.forEach(item => {
+            renderCard(item.text, item.timestamp, 'HISTORY');
+          });
+          chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+      } catch (err) {
+        console.error('Failed to load history:', err);
+      }
+    }
+    loadHistory();
+
+    // ============ 2. CONNECT TO GLOBAL SSE STREAM ============
+    function connectSSE() {
+      const evtSource = new EventSource(`${BASE_URL}/api/stealth-global-stream`);
+      
+      evtSource.onopen = () => {
+        connDot.classList.add('connected');
+        connLabel.textContent = 'LIVE';
+        connLabel.style.color = '#4ade80';
+      };
+
+      evtSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          placeholder.style.display = 'none';
+          renderCard(data.text, data.timestamp, 'LIVE');
+          chatContainer.scrollTop = chatContainer.scrollHeight;
+        } catch (e) {
+          console.error('SSE parse error:', e);
+        }
+      };
+
+      evtSource.onerror = () => {
+        connDot.classList.remove('connected');
+        connLabel.textContent = 'RECONNECTING...';
+        connLabel.style.color = '#f87171';
+        // EventSource auto-reconnects
+      };
+    }
+    connectSSE();
+
+    // ============ 3. RENDER A RESPONSE CARD ============
+    function renderCard(text, timestamp, source) {
+      if (!text) return;
+      
+      attemptCount++;
+      const cleanText = text.replace(/<think>[\s\S]*?<\/think>\s*/gi, '');
+      const time = timestamp ? new Date(timestamp).toLocaleTimeString() : new Date().toLocaleTimeString();
+
+      const card = document.createElement('div');
+      card.className = 'qa-card';
+      
+      const header = document.createElement('div');
+      header.className = 'card-header';
+      header.innerHTML = `
+        <span>📸 RESPONSE #${attemptCount} — ${time}</span>
+        <span class="source-tag">${source}</span>
+      `;
+      card.appendChild(header);
+
+      const body = document.createElement('div');
+      body.className = 'markdown-body';
+      
+      if (typeof marked !== 'undefined') {
+        body.innerHTML = marked.parse(cleanText);
+      } else {
+        body.textContent = cleanText;
+      }
+      
+      card.appendChild(body);
+      chatContainer.appendChild(card);
+      
+      // Add copy buttons to code blocks
+      attachCopyButtons(body);
+    }
+
+    // ============ 4. COPY BUTTONS ON CODE BLOCKS ============
+    function attachCopyButtons(container) {
+      const preBlocks = container.querySelectorAll('pre');
+      preBlocks.forEach(pre => {
+        if (pre.querySelector('.inline-btn-container')) return;
+        
+        pre.style.paddingTop = '32px';
+        
+        const btnContainer = document.createElement('div');
+        btnContainer.className = 'inline-btn-container';
+
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'code-action-btn';
+        copyBtn.textContent = '📋 COPY';
+        copyBtn.onclick = async (e) => {
+          e.stopPropagation();
+          const codeEl = pre.querySelector('code');
+          const codeText = codeEl ? codeEl.innerText : pre.innerText;
+
+          try {
+            await navigator.clipboard.writeText(codeText.trim());
+            copyBtn.textContent = '✅ COPIED';
+            copyBtn.classList.add('copied');
+            setTimeout(() => {
+              copyBtn.textContent = '📋 COPY';
+              copyBtn.classList.remove('copied');
+            }, 2000);
+          } catch(err) {
+            // Fallback for non-HTTPS
+            const textarea = document.createElement('textarea');
+            textarea.value = codeText.trim();
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            copyBtn.textContent = '✅ COPIED';
+            setTimeout(() => copyBtn.textContent = '📋 COPY', 2000);
+          }
+        };
+        
+        btnContainer.appendChild(copyBtn);
+        pre.appendChild(btnContainer);
+      });
+    }
+
+    // ============ 5. CLEAR CHAT ============
+    function clearChat() {
+      chatContainer.innerHTML = '';
+      attemptCount = 0;
+      placeholder.style.display = 'none';
+    }
+
+    // ============ 6. BROWSER-SIDE SCREEN CAPTURE ============
+    let activeStream = null;
+
+    async function captureFromBrowser() {
+      const btn = document.getElementById('btn-capture');
+      
+      try {
+        // If no stream yet, ask user to share a screen
+        if (!activeStream) {
+          activeStream = await navigator.mediaDevices.getDisplayMedia({
+            video: { displaySurface: "monitor" },
+            audio: false
+          });
+          
+          activeStream.getVideoTracks()[0].onended = () => {
+            activeStream = null;
+          };
+        }
+
+        btn.disabled = true;
+        btn.textContent = '⏳ Processing...';
+
+        // Create a temporary video element to grab a frame
+        const video = document.createElement('video');
+        video.srcObject = activeStream;
+        video.muted = true;
+        await video.play();
+        
+        // Wait a tick for the video to render
+        await new Promise(r => setTimeout(r, 200));
+        
+        const canvas = document.getElementById('capture-canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        video.pause();
+
+        const base64Full = canvas.toDataURL('image/jpeg', 0.9);
+        const base64Data = base64Full.replace(/^data:image\/jpeg;base64,/, '');
+
+        // Show loading card
+        placeholder.style.display = 'none';
+        attemptCount++;
+        const card = document.createElement('div');
+        card.className = 'qa-card';
+        card.innerHTML = `
+          <div class="card-header">
+            <span>📸 BROWSER CAPTURE #${attemptCount}</span>
+            <span class="loading-pulse">⏳ Processing AI...</span>
+          </div>
+          <div class="markdown-body">Analyzing screenshot...</div>
+        `;
+        chatContainer.appendChild(card);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+
+        const headerStatus = card.querySelector('.loading-pulse');
+        const answerEl = card.querySelector('.markdown-body');
+        const startTime = Date.now();
+
+        // Call the same endpoint the Electron app uses
+        const response = await fetch(`${BASE_URL}/solve-mcqs-base64`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'premium-token': 'admin-token'
+          },
+          body: JSON.stringify({
+            image: base64Data,
+            contextHistory: []
+          })
+        });
+
+        const data = await response.json();
+        const elapsed = ((Date.now() - startTime)/1000).toFixed(1);
+
+        headerStatus.className = 'source-tag';
+        headerStatus.style.color = '';
+        headerStatus.textContent = `✅ ${elapsed}s`;
+
+        if (data.success) {
+          const cleanText = (data.aiAnswers || data.extractedText || 'No content').replace(/<think>[\s\S]*?<\/think>\s*/gi, '');
+          answerEl.innerHTML = marked.parse(cleanText);
+          attachCopyButtons(answerEl);
+        } else {
+          answerEl.innerHTML = `<span style="color:#f87171">Error: ${data.error}</span>`;
+        }
+
+      } catch(err) {
+        console.error('Browser capture error:', err);
+        if (err.name === 'NotAllowedError') {
+          alert('Screen share permission denied. Please try again.');
+        }
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '📸 Capture This Screen';
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+      }
+    }
+
+  </script>
+</body>
+</html>

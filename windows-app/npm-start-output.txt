@@ -1,0 +1,14 @@
+
+> ai-auto-marker-windows@1.0.0 start
+> electron .
+
+
+(node:4648) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `electron --trace-deprecation ...` to show where the warning was created)
+Bypassing setup window - Auto-activating premium access...
+Global shortcuts registered:
+- Control+Shift+P/Alt+P: true
+- Control+Shift+R/Alt+R: false
+- Alt+X/Alt+Y: true
+- Tab/Ctrl+Shift+I: true
+- Ctrl+Q/Alt+Q/F5 (Kill Switch): true

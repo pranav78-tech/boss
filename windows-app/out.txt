@@ -1,0 +1,37 @@
+At C:\Users\hp\Downloads\project
+-final-main (1)\project-final-ma
+in\windows-app\move-cursor.ps1:1
+30 char:38
++ Write-Host "Cursor movement 
+finished."
++                               
+       ~
+The string is missing the 
+terminator: ".
+At C:\Users\hp\Downloads\project
+-final-main (1)\project-final-ma
+in\windows-app\move-cursor.ps1:1
+27 char:13
++     default { Write-Host 
+"Unknown answer: $answer â?" no 
+cursor movem ...
++             ~
+Missing closing '}' in 
+statement block or type 
+definition.
+At C:\Users\hp\Downloads\project
+-final-main (1)\project-final-ma
+in\windows-app\move-cursor.ps1:1
+21 char:18
++ switch ($answer) {
++                  ~
+Missing closing '}' in 
+statement block or type 
+definition.
+    + CategoryInfo          : P 
+   arserError: (:) [], ParentC  
+  ontainsErrorRecordException
+    + FullyQualifiedErrorId : T 
+   erminatorExpectedAtEndOfStr  
+  ing
+ 

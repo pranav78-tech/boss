@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Audio Listener</title>
+</head>
+<body>
+  <script>
+    const { ipcRenderer } = require('electron');
+
+    let mediaRecorder = null;
+    let audioStream = null;
+    let isListening = false;
+    let chunkInterval = null;
+
+    // Start capturing audio from microphone/loopback device
+    async function startCapture() {
+      try {
+        console.log('Audio listener: Starting audio capture...');
+
+        // First, enumerate available audio input devices
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const audioInputs = devices.filter(d => d.kind === 'audioinput');
+        console.log('Audio listener: Found', audioInputs.length, 'audio input device(s):');
+        audioInputs.forEach((d, i) => {
+          console.log(`  [${i}] ${d.label || 'Unnamed'} (${d.deviceId.substring(0, 12)}...)`);
+        });
+
+        // Try to find a loopback/stereo mix device first (captures system audio)
+        let selectedDevice = null;
+        const loopbackKeywords = ['stereo mix', 'what u hear', 'loopback', 'virtual', 'cable', 'system audio'];
+        for (const device of audioInputs) {
+          const label = (device.label || '').toLowerCase();
+          if (loopbackKeywords.some(kw => label.includes(kw))) {
+            selectedDevice = device;
+            console.log('Audio listener: Found loopback device:', device.label);
+            break;
+          }
+        }
+
+        // Build constraints — use loopback if found, otherwise default mic
+        const audioConstraints = {
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false,
+          sampleRate: 16000
+        };
+
+        if (selectedDevice) {
+          audioConstraints.deviceId = { exact: selectedDevice.deviceId };
+          console.log('Audio listener: Using loopback device:', selectedDevice.label);
+        } else {
+          console.log('Audio listener: No loopback found, using default microphone');
+          console.log('Audio listener: TIP - Enable "Stereo Mix" in Windows Sound settings to capture system audio');
+        }
+
+        // Request audio stream
+        audioStream = await navigator.mediaDevices.getUserMedia({
+          audio: audioConstraints,
+          video: false
+        });
+
+        const audioTracks = audioStream.getAudioTracks();
+        if (audioTracks.length === 0) {
+          throw new Error('No audio tracks available');
+        }
+
+        console.log('Audio listener: Got audio stream with', audioTracks.length, 'track(s)');
+        console.log('Audio listener: Using device:', audioTracks[0].label);
+
+        // Start recording in chunks
+        startChunkRecording(audioStream);
+
+        isListening = true;
+        ipcRenderer.send('audio-status', { status: 'listening' });
+      } catch (error) {
+        console.error('Audio listener: Failed to capture audio:', error.message);
+        ipcRenderer.send('audio-status', { status: 'error', error: error.message });
+      }
+    }
+
+    // Record audio in 10-second chunks and send to main process
+    function startChunkRecording(stream) {
+      let chunks = [];
+
+      // Use webm/opus codec
+      const options = { mimeType: 'audio/webm;codecs=opus' };
+
+      try {
+        mediaRecorder = new MediaRecorder(stream, options);
+      } catch (e) {
+        mediaRecorder = new MediaRecorder(stream);
+      }
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          chunks.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        if (chunks.length === 0) return;
+
+        const blob = new Blob(chunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+        chunks = [];
+
+        // Convert blob to base64
+        const arrayBuffer = await blob.arrayBuffer();
+        const base64 = btoa(
+          new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+        );
+
+        // Send to main process (skip near-empty chunks)
+        if (base64.length > 500) {
+          console.log(`Audio listener: Sending chunk (${(base64.length / 1024).toFixed(1)}KB)`);
+          ipcRenderer.send('audio-chunk', { audio: base64 });
+        } else {
+          console.log('Audio listener: Skipping silent/near-empty chunk');
+        }
+      };
+
+      // Start recording
+      mediaRecorder.start();
+      console.log('Audio listener: Recording started');
+
+      // Every 10 seconds, stop and restart to create chunks
+      chunkInterval = setInterval(() => {
+        if (mediaRecorder && mediaRecorder.state === 'recording') {
+          mediaRecorder.stop();
+
+          setTimeout(() => {
+            chunks = [];
+            if (isListening && mediaRecorder) {
+              try {
+                mediaRecorder.start();
+              } catch (e) {
+                console.error('Audio listener: Failed to restart recording:', e);
+              }
+            }
+          }, 100);
+        }
+      }, 10000); // 10-second chunks
+    }
+
+    // Stop capturing
+    function stopCapture() {
+      console.log('Audio listener: Stopping audio capture...');
+      isListening = false;
+
+      if (chunkInterval) {
+        clearInterval(chunkInterval);
+        chunkInterval = null;
+      }
+
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        try { mediaRecorder.stop(); } catch (e) { /* ignore */ }
+      }
+      mediaRecorder = null;
+
+      if (audioStream) {
+        audioStream.getTracks().forEach(track => track.stop());
+        audioStream = null;
+      }
+
+      ipcRenderer.send('audio-status', { status: 'stopped' });
+    }
+
+    // Listen for commands from main process
+    ipcRenderer.on('audio-start', () => {
+      if (!isListening) {
+        startCapture();
+      }
+    });
+
+    ipcRenderer.on('audio-stop', () => {
+      if (isListening) {
+        stopCapture();
+      }
+    });
+
+    // Notify main process that the listener is ready
+    ipcRenderer.send('audio-listener-ready');
+    console.log('Audio listener: Ready');
+  </script>
+</body>
+</html>

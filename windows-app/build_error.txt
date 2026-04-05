@@ -1,0 +1,13 @@
+
+> system-service-host@1.0.0 build
+> electron-builder --win --x64
+
+  ΓÇó electron-builder  version=22.14.13 os=10.0.26200
+  ΓÇó loaded configuration  file=package.json ("build" field)
+  ΓÇó packaging       platform=win32 arch=x64 electron=40.8.0 appOutDir=dist\win-unpacked
+  ΓÇó building        target=nsis file=dist\Runtime Broker.exe archs=x64 oneClick=true perMachine=false
+  ΓÇó downloading     url=https://github.com/electron-userland/electron-builder-binaries/releases/download/nsis-3.0.4.1/nsis-3.0.4.1.7z size=1.3 MB parts=1
+  ΓÇó downloaded      url=https://github.com/electron-userland/electron-builder-binaries/releases/download/nsis-3.0.4.1/nsis-3.0.4.1.7z duration=366ms
+  ΓÇó downloading     url=https://github.com/electron-userland/electron-builder-binaries/releases/download/nsis-resources-3.4.1/nsis-resources-3.4.1.7z size=731 kB parts=1
+  ΓÇó downloaded      url=https://github.com/electron-userland/electron-builder-binaries/releases/download/nsis-resources-3.4.1/nsis-resources-3.4.1.7z duration=587ms
+  ΓÇó building block map  blockMapFile=dist\Runtime Broker.exe.blockmap

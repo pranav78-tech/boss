@@ -1,0 +1,71 @@
+# Node.js dependencies
+node_modules/
+windows-app/node_modules/
+npm-debug.log*
+.npm/
+.npmrc
+
+# Uploads directory (contains temporary files)
+uploads/
+
+# Environment variables
+.env
+.env.local
+.env.production
+
+# Log files
+*.log
+logs/
+
+# OS generated files
+Thumbs.db
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Icon?
+*.icon?
+Desktop.ini
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Build outputs
+dist/
+build/
+out/
+windows-app/dist/
+windows-app/dist2/
+windows-app/dist3/
+windows-app/build_final_*/
+*.exe
+windows-app/cursor-debug.log*
+
+# Extension files
+*.crx
+
+
+# Temporary files
+tmp/
+temp/
+
+# Chrome extension development
+*.pem
+
+# Screenshots (if any)
+screenshots/
+
+# Test files
+*.test.js
+*.spec.js
+.vercel
+dist/
+dist_new/
+dist_old/
+dist_locked/

@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: mcq-solver-server
+    env: node
+    buildCommand: npm install --legacy-peer-deps
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: 18
+      - key: RENDER_UPLOAD_DIR
+        value: /tmp/uploads
+    disk:
+      name: uploads
+      mountPath: /tmp/uploads
+      sizeGB: 1
