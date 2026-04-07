@@ -308,7 +308,6 @@ function createStealthWindow() {
       stealthTypistBuffer = prepareTypistBuffer(cleanedCode);
       stealthTypistIndex = 0;
       autoCloseSkipStack = []; // Reset fast
-      clipboard.writeText(stealthTypistBuffer);
       console.log('Buffered ' + stealthTypistBuffer.length + ' chars for Stealth Typist');
 
       globalShortcut.unregister('Tab');

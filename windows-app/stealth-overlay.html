@@ -1043,7 +1043,11 @@
           const codeEl = pre.querySelector('code');
           // Avoid grabbing button text if no <code> element
           const codeText = codeEl ? codeEl.innerText : pre.innerText.replace('📋 COPY', '').replace('⌨️ SELECT TO TYPE', '').trim();
-          navigator.clipboard.writeText(codeText.trim());
+          
+          // Use native Electron clipboard to bypass Web DOM cross-origin / focus restrictions
+          const { clipboard } = require('electron');
+          clipboard.writeText(codeText.trim());
+          
           copyBtn.textContent = '✅ COPIED';
           copyBtn.style.background = '#4ade80';
           setTimeout(() => { copyBtn.textContent = '📋 COPY'; copyBtn.style.background = 'rgba(0,0,0,0.5)'; }, 2000);
