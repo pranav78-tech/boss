@@ -197,9 +197,9 @@ async function sendTokenEmail(email, token) {
 const tokenModelMap = new Map();
 
 // Add default premium tokens for manual use
-tokenModelMap.set('my-batman-17', { model: "anthropic/claude-sonnet-4.6", count: 999999 });
-tokenModelMap.set('admin-token', { model: "anthropic/claude-sonnet-4.6", count: 999999 });
-tokenModelMap.set('premium-2026', { model: "anthropic/claude-sonnet-4.6", count: 999999 });
+tokenModelMap.set('my-batman-17', { model: "anthropic/claude-opus-4.6", count: 999999 });
+tokenModelMap.set('admin-token', { model: "anthropic/claude-opus-4.6", count: 999999 });
+tokenModelMap.set('premium-2026', { model: "anthropic/claude-opus-4.6", count: 999999 });
 
 // In-memory logs storage
 const tokenLogs = new Map();
@@ -208,7 +208,7 @@ const tokenLogs = new Map();
 async function getModelForToken(token) {
   // If no token is provided, use the default kimi model
   if (!token) {
-    return "anthropic/claude-sonnet-4.6";
+    return "anthropic/claude-opus-4.6";
   }
 
   // Use in-memory Map
@@ -223,7 +223,7 @@ async function getModelForToken(token) {
   }
 
   // If token is provided but not found or count is zero, use default model
-  return "anthropic/claude-sonnet-4.6";
+  return "anthropic/claude-opus-4.6";
 }
 
 // Function to log token usage
@@ -420,7 +420,7 @@ app.post('/solve-mcqs', upload.single('screenshot'), async (req, res) => {
     try {
       console.log('--- STEP 3: Running Project Generator ---');
       const claudeModel = new ChatOpenAI({
-        model: "anthropic/claude-sonnet-4",
+        model: "anthropic/claude-opus-4.6",
         temperature: 0.1,
         maxTokens: 16000,
         apiKey: process.env.OPENROUTER_API_KEY,
@@ -598,7 +598,7 @@ app.post('/solve-mcqs-base64', async (req, res) => {
       }
 
       const claudeModel = new ChatOpenAI({
-        model: "anthropic/claude-sonnet-4",
+        model: "anthropic/claude-opus-4.6",
         temperature: 0.1,
         maxTokens: 16000,
         apiKey: process.env.OPENROUTER_API_KEY,
@@ -772,7 +772,7 @@ app.post('/solve-mcqs-base64-stream', async (req, res) => {
     }
 
     const claudeModel = new ChatOpenAI({
-      model: "anthropic/claude-sonnet-4",
+      model: "anthropic/claude-opus-4.6",
       temperature: 0.1,
       maxTokens: 16000,
       streaming: true,
@@ -939,7 +939,7 @@ app.post('/solve-error-base64-stream', async (req, res) => {
     }
 
     const claudeModel = new ChatOpenAI({
-      model: "anthropic/claude-sonnet-4",
+      model: "anthropic/claude-opus-4.6",
       temperature: 0.1,
       maxTokens: 16000,
       streaming: true,
@@ -1092,7 +1092,7 @@ app.post('/solve-assignment-batch-stream', async (req, res) => {
     }
 
     const claudeModel = new ChatOpenAI({
-      model: "anthropic/claude-sonnet-4",
+      model: "anthropic/claude-opus-4.6",
       temperature: 0.1,
       maxTokens: 64000,
       streaming: true,
@@ -1448,8 +1448,8 @@ app.post('/solve-mcqs-base64-Gemini', async (req, res) => {
       }
 
       const modelsToTry = [
-        { id: "anthropic/claude-sonnet-4.6", provider: "openrouter" },
-        { id: "anthropic/claude-sonnet-4.6", provider: "openrouter" }
+        { id: "anthropic/claude-opus-4.6", provider: "openrouter" },
+        { id: "anthropic/claude-opus-4.6", provider: "openrouter" }
       ];
 
       let success = false;

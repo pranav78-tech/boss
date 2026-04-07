@@ -869,19 +869,26 @@
 
     ipcRenderer.on('batch-stream-done', (event, data) => {
       try {
-        if (data && data.text && batchResponseContainer) {
-          if (typeof marked !== 'undefined') {
-            batchResponseContainer.innerHTML = marked.parse(data.text);
-            addButtonsToCodeBlocks(batchResponseContainer);
+        if (batchResponseContainer) {
+          // Use data.text if available, otherwise use already-rendered chunk content
+          const finalText = (data && data.text) ? data.text : (batchResponseContainer.dataset.rawMarkdown || '');
+
+          if (finalText && typeof marked !== 'undefined') {
+            batchResponseContainer.innerHTML = marked.parse(finalText);
           }
+
+          // Always add COPY + SELECT TO TYPE buttons to code blocks
+          addButtonsToCodeBlocks(batchResponseContainer);
 
           const headerSpan = document.getElementById('batch-header-timer');
           if (headerSpan) {
-            headerSpan.textContent = `✅ ASSIGNMENT COMPLETE (${data.screenshotCount || screenshotQueue.length} screenshots)`;
+            headerSpan.textContent = `✅ ASSIGNMENT COMPLETE (${(data && data.screenshotCount) || screenshotQueue.length} screenshots)`;
           }
 
-          chatContext.push({ role: 'assistant', content: 'Assignment solution: ' + data.text });
-          if (chatContext.length > 20) chatContext = chatContext.slice(chatContext.length - 20);
+          if (finalText) {
+            chatContext.push({ role: 'assistant', content: 'Assignment solution: ' + finalText });
+            if (chatContext.length > 20) chatContext = chatContext.slice(chatContext.length - 20);
+          }
         }
 
         // Reset solve button
