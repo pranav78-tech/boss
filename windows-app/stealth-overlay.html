@@ -877,10 +877,13 @@
             batchResponseContainer.innerHTML = marked.parse(finalText);
           }
 
+          // Capture a local reference so we don't lose the DOM element when the global resets!
+          const targetContainer = batchResponseContainer;
+          
           // Always add COPY + SELECT TO TYPE buttons to code blocks, 
           // with a slight delay to ensure DOM repaints completely.
           setTimeout(() => {
-            if (batchResponseContainer) addButtonsToCodeBlocks(batchResponseContainer);
+            if (targetContainer) addButtonsToCodeBlocks(targetContainer);
           }, 50);
 
           const headerSpan = document.getElementById('batch-header-timer');
