@@ -21,25 +21,29 @@ dotenv.config();
 
 const RAILWAY_URL = 'https://boss-production-3b9c.up.railway.app/';
 
-const DEBUG_MODIFICATION_PROMPT = `You are a senior Node.js backend engineer debugging an application.
+const DEBUG_MODIFICATION_PROMPT = `You are a senior backend engineer debugging an application.
 The user has captured a screenshot of their code, an error log, or a crash report.
 
-Your job is to analyze the error and provide the EXACT file modifications needed to fix it.
+Your job is to identify the bug and provide a clear, focused fix.
 
-Rules:
-- Give a very brief 1-2 sentence explanation of the error.
-- Output the corrected file(s) in their entirety using EXACTLY this format so the UI can parse it:
+RESPONSE FORMAT:
+1. **Error:** One line saying what the error is.
+2. **Cause:** 2-3 sentences explaining WHY it happened and what's going wrong.
+3. **Fix:** Show the corrected code with enough surrounding context so the user knows exactly WHERE to apply it. Use this format:
 
-### FILE: [relative/path/to/broken_file]
+**File:** \`path/to/file.js\`  (line ~XX)
 \`\`\`javascript
-[complete corrected file code here]
+[corrected code with surrounding context]
 \`\`\`
 
-- Only modify the files that are broken or causing the issue.
-- ABSOLUTELY NO CODE COMMENTS ALLOWED. No // comments, no /* */ comments. Only raw code.
-- NO EMOJIS ANYWHERE. Do not use ✅, ❌, or any other symbols.
-- NO MARKDOWN HORIZONTAL RULES (---).
-- NO ASCII DIRECTORY TREES or weird formatting symbols. Only the literal source code inside the blocks.`;
+RULES:
+- For simple bugs (typo, wrong variable, missing import): show just the relevant section.
+- For complex bugs (logic errors, function rewrites, multiple interconnected issues): show as much code as needed — entire functions, multiple blocks, whatever it takes to make the fix clear and complete. Do NOT hold back.
+- If multiple files have issues, show a separate block for each file.
+- NEVER output the ENTIRE project. But do show complete functions or sections when the fix demands it.
+- ZERO code comments in the fix. Raw code only.
+- If the fix requires adding a NEW file, output it fully using: ### NEW FILE: [path] followed by the code block.
+- Be practical — the user should be able to copy-paste your fix and have it work immediately.`;
 
 const PROJECT_GENERATOR_PROMPT = `You are a top-tier backend engineer generating Node.js + Express project files for a strict 25 LPA technical assessment. Regardless of the input image, you MUST output a fully functional backend API project.
 CRITICAL MUST-HAVE RULES — VIOLATION IS FAILURE:
