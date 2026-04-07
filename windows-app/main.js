@@ -483,13 +483,20 @@ function createStealthWindow() {
                     break;
                 }
               }
-            } catch (e) { /* skip malformed SSE */ }
+            } catch (e) {
+              console.error("[BATCH] SSE Parse error on event:", currentEvent, e.message);
+            }
             currentEvent = '';
           }
         }
       }
 
       console.log(`[BATCH] Complete — ${fullText.length} chars received`);
+
+      // GUARANTEE the UI resets when the network stream closes, even if the 'done' SSE event failed to parse.
+      if (stealthWindow && !stealthWindow.isDestroyed()) {
+        stealthWindow.webContents.send('batch-stream-done', { text: fullText });
+      }
 
     } catch (error) {
       console.error('[BATCH] Error:', error.message);

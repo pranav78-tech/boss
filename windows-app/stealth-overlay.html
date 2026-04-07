@@ -877,8 +877,11 @@
             batchResponseContainer.innerHTML = marked.parse(finalText);
           }
 
-          // Always add COPY + SELECT TO TYPE buttons to code blocks
-          addButtonsToCodeBlocks(batchResponseContainer);
+          // Always add COPY + SELECT TO TYPE buttons to code blocks, 
+          // with a slight delay to ensure DOM repaints completely.
+          setTimeout(() => {
+            if (batchResponseContainer) addButtonsToCodeBlocks(batchResponseContainer);
+          }, 50);
 
           const headerSpan = document.getElementById('batch-header-timer');
           if (headerSpan) {
@@ -891,10 +894,14 @@
           }
         }
 
-        // Reset solve button
+        // Reset solve button and CLEAR QUEUE automatically!
         btnQueueSolve.disabled = false;
         btnQueueSolve.textContent = '🚀 SOLVE';
         batchResponseContainer = null;
+        
+        // Clear thumbnails as a visual indicator it's 100% finished
+        screenshotQueue = [];
+        updateQueueUI();
 
         const isAtBottom = contentArea.scrollHeight - contentArea.scrollTop - contentArea.clientHeight < 40;
         if (isAtBottom) contentArea.scrollTop = contentArea.scrollHeight;
