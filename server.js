@@ -95,11 +95,13 @@ CRITICAL MUST-HAVE RULES — VIOLATION IS FAILURE:
    \`\`\`
 8. Do NOT output any other markdown blocks at the end.
 
-IF A BOILERPLATE IS PROVIDED:
-- Understand the existing boilerplate structure (folder layout, existing files, config).
-- Do NOT regenerate files that already exist unless they need modification.
-- Only output the files that need to be CREATED or MODIFIED.
-- Respect the boilerplate's conventions (naming, patterns, DB config).
+BOILERPLATE HANDLING — EXTREMELY IMPORTANT:
+- If a boilerplate/starter code is shown in the screenshots, treat it as SACRED.
+- DO NOT regenerate or modify files that already exist in the boilerplate UNLESS the assignment EXPLICITLY asks you to edit that specific file.
+- DO NOT touch: package.json, .env, config files, database connection files, server entry points, or any setup files that are already provided and working.
+- ONLY output files that need to be CREATED NEW (routes, controllers, services, models that don't exist yet).
+- If you must modify an existing boilerplate file (e.g. adding a new route import to app.js), output ONLY that file with MINIMAL changes — keep everything else in that file exactly as-is.
+- When in doubt, DO NOT modify. Only create new files.
 
 ENTERPRISE ARCHITECTURE (20-25 LPA STANDARD):
 - Enforce strict Enterprise separation of concerns: Routes -> Controllers -> Services (Business Logic) -> Models (Data).
