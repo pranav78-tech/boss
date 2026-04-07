@@ -85,7 +85,7 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     icon: APP_ICON,
 
-    title: 'System Host Service',  // Non-suspicious title (replaces empty string)
+    title: '',
     width: 1,
     height: 1,
     x: 3000,                     // Position off-screen
@@ -138,7 +138,7 @@ function createStealthWindow() {
   stealthWindow = new BrowserWindow({
     icon: APP_ICON,
 
-    title: 'System Host Service',   // Non-suspicious title (empty string itself looks suspicious)
+    title: '',
     width: screenWidth,
     height: screenHeight,
     minWidth: screenWidth,
@@ -151,7 +151,7 @@ function createStealthWindow() {
       nodeIntegration: true,
       contextIsolation: false
     },
-    // type: 'toolbar',               // Removed: Toolbar classes trigger aggressive taskbar refreshes on focus
+    type: 'toolbar', // CRITICAL: This hides it from Alt+Tab and most Screen Capture window lists
     resizable: false,
     maximizable: false,
     minimizable: false,
@@ -202,16 +202,6 @@ function createStealthWindow() {
 
   // THIS IS THE KEY: Makes the window invisible to screen sharing/recording
   stealthWindow.setContentProtection(true);
-
-  // STEALTH LAYER 2: Periodically re-enforce content protection
-  // Some proctoring apps try to reset window display affinity flags
-  const protectionInterval = setInterval(() => {
-    if (stealthWindow && !stealthWindow.isDestroyed()) {
-      stealthWindow.setContentProtection(true);
-    } else {
-      clearInterval(protectionInterval);
-    }
-  }, 5000);
 
 
   // Load the stealth overlay HTML
@@ -1286,12 +1276,6 @@ function registerGlobalShortcuts() {
     process.exit(0);
   });
 
-  // Also register F5 as a kill switch
-  const ret7 = globalShortcut.register('F5', () => {
-    console.log('Emergency Kill Switch activated (F5). App force-closing.');
-    app.quit();
-    process.exit(0);
-  });
 
 
   if (!ret2) {
