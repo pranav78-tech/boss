@@ -569,6 +569,7 @@ module.exports = {
   captureAndProcessWithGemini,
   captureAndProcessStreaming,
   captureAndDebugErrorStreaming,
-  getPremiumToken
+  getPremiumToken,
+  getScreenshotBuffer
 };
 

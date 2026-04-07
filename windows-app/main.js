@@ -2,7 +2,7 @@ const { app, BrowserWindow, globalShortcut, ipcMain, Tray, Menu, screen, clipboa
 const path = require('path');
 const fs = require('fs');
 const axios = require('axios');
-const { captureAndProcess, captureAndProcessWithGemini, captureAndProcessStreaming, captureAndDebugErrorStreaming } = require('./capture');
+const { captureAndProcess, captureAndProcessWithGemini, captureAndProcessStreaming, captureAndDebugErrorStreaming, getScreenshotBuffer } = require('./capture');
 
 // Import nut-js for keyboard automation
 const { keyboard, Key, listener } = require('@nut-tree-fork/nut-js');
@@ -356,7 +356,7 @@ function createStealthWindow() {
       } else if (AUTO_CLOSE_MAP[charToType] !== undefined) {
         // Type the opener ({, [, ()
         await keyboard.type(charToType);
-        
+
         // INSTANTLY delete the auto-inserted closer so it doesn't pile up!
         // This executes in < 5ms. Google meet runs at 30fps (33ms per frame).
         // It is mathematically invisible on screen share.
@@ -372,7 +372,7 @@ function createStealthWindow() {
         await keyboard.pressKey(Key.Right);
         await keyboard.releaseKey(Key.Right);
         autoCloseSkipStack.pop();
-        
+
       } else {
         await keyboard.type(charToType);
       }
@@ -397,19 +397,117 @@ function createStealthWindow() {
     }
   }
 
-  // Bind the global Typist Hotkey natively!
-  globalShortcut.register('Control+Shift+U', executeStealthTyping);
-  globalShortcut.register('CommandOrControl+`', executeStealthTyping); // Optional hidden trigger
   // Tab is managed dynamically so it doesn't break the OS when idling
 
   // Handle manual capture triggers from the overlay (Bypasses hotkey blocks)
   ipcMain.removeAllListeners('trigger-capture');
   ipcMain.removeAllListeners('trigger-capture-gemini');
+  ipcMain.removeAllListeners('trigger-queue-capture');
+  ipcMain.removeAllListeners('send-batch-screenshots');
   ipcMain.on('trigger-capture', () => {
     captureAndDisplay();
   });
   ipcMain.on('trigger-capture-gemini', () => {
     captureAndDisplayWithGemini();
+  });
+  ipcMain.on('trigger-queue-capture', () => {
+    captureToQueue();
+  });
+
+  // ===== BATCH ASSIGNMENT SOLVER IPC =====
+  ipcMain.on('send-batch-screenshots', async (event, data) => {
+    if (!data || !data.images || data.images.length === 0) {
+      if (stealthWindow && !stealthWindow.isDestroyed()) {
+        stealthWindow.webContents.send('stealth-status', { message: '❌ No screenshots in queue' });
+      }
+      return;
+    }
+
+    console.log(`[BATCH] Sending ${data.images.length} screenshots to server...`);
+
+    if (stealthWindow && !stealthWindow.isDestroyed()) {
+      stealthWindow.webContents.send('batch-stream-start', { count: data.images.length });
+    }
+
+    try {
+      const BASE_URL = 'https://boss-production-3b9c.up.railway.app';
+      const BATCH_URL = `${BASE_URL}/solve-assignment-batch-stream`;
+
+      const { getPremiumToken } = require('./capture');
+      const premiumToken = getPremiumToken();
+
+      const response = await fetch(BATCH_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'premium-token': premiumToken || 'admin-token'
+        },
+        body: JSON.stringify({
+          images: data.images,
+          contextHistory: data.contextHistory || []
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server returned ${response.status}`);
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let fullText = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        let currentEvent = '';
+        for (const line of lines) {
+          if (line.startsWith('event: ')) {
+            currentEvent = line.substring(7).trim();
+          } else if (line.startsWith('data: ') && currentEvent) {
+            try {
+              const parsed = JSON.parse(line.substring(6));
+              if (stealthWindow && !stealthWindow.isDestroyed()) {
+                switch (currentEvent) {
+                  case 'chunk':
+                    fullText += parsed.text;
+                    stealthWindow.webContents.send('batch-stream-chunk', { chunk: parsed.text, fullText });
+                    break;
+                  case 'status':
+                    stealthWindow.webContents.send('stealth-status', { message: parsed.message });
+                    break;
+                  case 'extracted':
+                    stealthWindow.webContents.send('batch-extracted', { text: parsed.text, count: parsed.count });
+                    break;
+                  case 'done':
+                    stealthWindow.webContents.send('batch-stream-done', { text: fullText, ...parsed });
+                    stealthWindow.webContents.send('stealth-status', { message: `✅ Assignment solved (${parsed.screenshotCount} screenshots)` });
+                    break;
+                  case 'error':
+                    stealthWindow.webContents.send('stealth-status', { message: `❌ ${parsed.message}` });
+                    break;
+                }
+              }
+            } catch (e) { /* skip malformed SSE */ }
+            currentEvent = '';
+          }
+        }
+      }
+
+      console.log(`[BATCH] Complete — ${fullText.length} chars received`);
+
+    } catch (error) {
+      console.error('[BATCH] Error:', error.message);
+      if (stealthWindow && !stealthWindow.isDestroyed()) {
+        stealthWindow.webContents.send('stealth-status', { message: `❌ Batch solve failed: ${error.message}` });
+        stealthWindow.webContents.send('batch-stream-done', { text: 'Error: ' + error.message, error: true });
+      }
+    }
   });
 
   // Handle window close
@@ -840,6 +938,26 @@ function loadFromLocalStorage(key) {
 // Lock to prevent multiple simultaneous captures
 let isCapturing = false;
 
+// ===== SCREENSHOT QUEUE: Capture to queue without API call =====
+async function captureToQueue() {
+  try {
+    console.log('[QUEUE] Capturing screenshot to queue...');
+    const imgBuffer = await getScreenshotBuffer();
+    const base64Image = imgBuffer.toString('base64');
+
+    if (stealthWindow && !stealthWindow.isDestroyed()) {
+      stealthWindow.webContents.send('screenshot-queued', { image: base64Image });
+      stealthWindow.webContents.send('stealth-status', { message: '📸 Screenshot added to queue' });
+      console.log('[QUEUE] Screenshot sent to overlay queue');
+    }
+  } catch (error) {
+    console.error('[QUEUE] Error capturing screenshot:', error.message);
+    if (stealthWindow && !stealthWindow.isDestroyed()) {
+      stealthWindow.webContents.send('stealth-status', { message: '❌ Queue capture failed' });
+    }
+  }
+}
+
 // New function to capture screen and send to server without displaying results
 async function captureAndDisplay() {
   if (isCapturing) {
@@ -1080,11 +1198,11 @@ function testCursorDisplay() {
 
 // Register global shortcuts
 function registerGlobalShortcuts() {
-  // Register Ctrl+Shift+P to clear stealth overlay
+  // Ctrl+Shift+P = Batch Solve (send all queued screenshots for processing)
   globalShortcut.register('Control+Shift+P', () => {
     if (stealthWindow && !stealthWindow.isDestroyed()) {
-      stealthWindow.webContents.send('stealth-clear');
-      console.log('Stealth overlay: CLEARED');
+      stealthWindow.webContents.send('trigger-batch-solve');
+      console.log('Batch solve triggered via Ctrl+Shift+P');
     }
   });
 
@@ -1114,6 +1232,9 @@ function registerGlobalShortcuts() {
   globalShortcut.register('CommandOrControl+Shift+Up', () => scrollStealthWindow(-80));
   globalShortcut.register('CommandOrControl+Shift+Down', () => scrollStealthWindow(80));
 
+
+  // Screenshot queue hotkey (Ctrl+Shift+G = Grab to queue)
+  globalShortcut.register('Control+Shift+G', captureToQueue);
 
   // Try to register shortcut for capture and display without auto-typing
   let ret2 = globalShortcut.register('Control+Shift+H', captureAndDisplay);
@@ -1184,14 +1305,13 @@ function registerGlobalShortcuts() {
 
 
   console.log('Global shortcuts registered:');
-  console.log('- Ctrl+Shift+P (Clear Stealth):', globalShortcut.isRegistered('Control+Shift+P'));
-  console.log('- Ctrl+Shift+U (Append Part):', globalShortcut.isRegistered('Control+Shift+U'));
-  console.log('- Control+Shift+H/Alt+R:', globalShortcut.isRegistered('Control+Shift+H') || globalShortcut.isRegistered('Control+Alt+R'));
-  console.log('- Control+Shift+R/Alt+R:', globalShortcut.isRegistered('Control+Shift+R') || globalShortcut.isRegistered('Control+Alt+R'));
-  console.log('- Alt+X/Alt+Y:', globalShortcut.isRegistered('Alt+X') || globalShortcut.isRegistered('Control+Alt+Y'));
-
+  console.log('- Ctrl+Shift+P (Batch Solve):', globalShortcut.isRegistered('Control+Shift+P'));
+  console.log('- Ctrl+Shift+G (Queue Capture):', globalShortcut.isRegistered('Control+Shift+G'));
+  console.log('- Ctrl+Shift+H (Instant Solve):', globalShortcut.isRegistered('Control+Shift+H') || globalShortcut.isRegistered('Control+Alt+R'));
+  console.log('- Ctrl+Shift+T (Debug Error):', globalShortcut.isRegistered('Control+Shift+T'));
+  console.log('- Alt+X (Gemini MCQ):', globalShortcut.isRegistered('Alt+X') || globalShortcut.isRegistered('Alt+Y'));
   console.log('- Ctrl+Shift+S (Stealth):', globalShortcut.isRegistered('Control+Shift+S') || globalShortcut.isRegistered('Control+Alt+S'));
-  console.log('- Ctrl+Shift+A (Audio):', globalShortcut.isRegistered('Control+Shift+A') || globalShortcut.isRegistered('Control+Alt+A'));
+  console.log('- Ctrl+Alt+J (Chat Mode):', globalShortcut.isRegistered('Control+Alt+J'));
   console.log('- Ctrl+Q/Alt+Q/F5 (Kill Switch):', globalShortcut.isRegistered('Control+Q') || globalShortcut.isRegistered('Alt+Q') || globalShortcut.isRegistered('F5'));
 }
 

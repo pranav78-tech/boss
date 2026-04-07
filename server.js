@@ -73,6 +73,50 @@ TECHNOLOGY STACK & PRODUCTION CODE RULES:
 
 const VISION_EXTRACTION_PROMPT = "Look at this image and extract ALL text. This is a project assignment or technical requirement document. Extract the project title, description, tech stack requirements, features needed, API endpoints listed, database schema requirements, constraints, deadline info, and any specific instructions. Preserve all details exactly as written.";
 
+const ASSIGNMENT_BATCH_PROMPT = `You are a top-tier backend engineer. You have been given MULTIPLE screenshots from a single hiring assignment. The screenshots contain:
+- The assignment description, requirements, and constraints
+- Possibly a boilerplate/starter code structure
+- Database schema or API endpoint specifications
+- Any specific rules or evaluation criteria
+
+Your job is to analyze ALL the extracted text from every screenshot, understand the COMPLETE assignment, and generate the FULL working project.
+
+CRITICAL MUST-HAVE RULES — VIOLATION IS FAILURE:
+1. OUTPUT ONLY SOURCE CODE FILES. No explanations, no README, no bash interactions.
+2. ZERO COMMENTS. None. Code only.
+3. ABSOLUTELY ZERO SYNTAX ERRORS. Code MUST run perfectly on the first try. Ensure all imports match usage perfectly.
+4. Setup Block: Start with ONE single line: "## Project [ProjectName]"
+5. Followed by ONE text code block showing the file tree (NO emojis).
+6. Followed by EXACT \`npm install <dependencies>\` command block.
+7. Next, output files exactly strictly using:
+   ### FILE: [path/to/file]
+   \`\`\`javascript
+   [code]
+   \`\`\`
+8. Do NOT output any other markdown blocks at the end.
+
+IF A BOILERPLATE IS PROVIDED:
+- Understand the existing boilerplate structure (folder layout, existing files, config).
+- Do NOT regenerate files that already exist unless they need modification.
+- Only output the files that need to be CREATED or MODIFIED.
+- Respect the boilerplate's conventions (naming, patterns, DB config).
+
+ENTERPRISE ARCHITECTURE (20-25 LPA STANDARD):
+- Enforce strict Enterprise separation of concerns: Routes -> Controllers -> Services (Business Logic) -> Models (Data).
+- Use a dedicated \`utils/AppError.js\` class for operational errors.
+- Include a robust centralized \`middleware/errorHandler.js\` that catches unhandled rejections and securely formats API error responses.
+- Abstract all database interactions into the Service layer.
+
+TECHNOLOGY STACK & PRODUCTION CODE RULES:
+- Node.js with Express.js and dotenv.
+- Use Sequelize ORM for models/CRUD AND raw SQL (via sequelize.query) for complex queries.
+- If the assignment specifies raw SQL only, use mysql2/promise with parameterized queries.
+- async/await everywhere. ZERO use of \`then()\` or callbacks.
+- Advanced input validation before any DB hit.
+- Secure, parameterized DB interactions.
+- Return structured JSON responses strictly: { status: "success", data: ... }.
+- Always wrap controllers in an async error handler or strict try/catch with \`next(err)\`.`;
+
 
 
 
@@ -957,6 +1001,149 @@ app.post('/solve-error-base64-stream', async (req, res) => {
 
   } catch (error) {
     console.error('Streaming error:', error);
+    try {
+      res.write(`event: error\ndata: ${JSON.stringify({ message: error.message })}\n\n`);
+      res.end();
+    } catch (e) {
+      // Response already closed
+    }
+  }
+});
+
+// =================== BATCH ASSIGNMENT SOLVER (Multi-Screenshot) ===================
+app.post('/solve-assignment-batch-stream', async (req, res) => {
+  try {
+    const { images, contextHistory } = req.body;
+
+    if (!images || !Array.isArray(images) || images.length === 0) {
+      return res.status(400).json({ success: false, error: 'At least one image is required' });
+    }
+
+    if (!process.env.OPENROUTER_API_KEY) {
+      console.error('CRITICAL: OPENROUTER_API_KEY is missing in environment variables.');
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ success: false, error: 'API Keys missing on server.' }));
+    }
+
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'X-Accel-Buffering': 'no'
+    });
+
+    const sendSSE = (event, data) => {
+      res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    };
+
+    sendSSE('status', { message: `Extracting text from ${images.length} screenshots...` });
+
+    const visionModel = new ChatOpenAI({
+      model: "google/gemini-2.5-flash",
+      temperature: 0.0,
+      apiKey: process.env.OPENROUTER_API_KEY,
+      configuration: {
+        baseURL: "https://openrouter.ai/api/v1",
+        defaultHeaders: {
+          "HTTP-Referer": RAILWAY_URL,
+          "X-Title": "Windows V1",
+        }
+      }
+    });
+
+    const extractionPromises = images.map(async (img, index) => {
+      let base64Data = img.startsWith('data:image') ? img.split(',')[1] : img;
+      try {
+        const visionResponse = await visionModel.invoke([
+          {
+            role: "user",
+            content: [
+              { type: "text", text: VISION_EXTRACTION_PROMPT },
+              { type: "image_url", image_url: { url: `data:image/png;base64,${base64Data}` } }
+            ]
+          }
+        ]);
+        sendSSE('status', { message: `Extracted screenshot ${index + 1}/${images.length}` });
+        return { index, text: visionResponse.content, success: true };
+      } catch (err) {
+        console.error(`Vision extraction failed for image ${index + 1}:`, err.message);
+        const ocrText = await performTesseractOCR(base64Data);
+        return { index, text: ocrText || `[Failed to extract text from screenshot ${index + 1}]`, success: !!ocrText };
+      }
+    });
+
+    const extractionResults = await Promise.all(extractionPromises);
+    extractionResults.sort((a, b) => a.index - b.index);
+
+    const combinedText = extractionResults
+      .map((r, i) => `--- SCREENSHOT ${i + 1} of ${images.length} ---\n${r.text}`)
+      .join('\n\n');
+
+    sendSSE('extracted', { text: combinedText, count: images.length });
+    sendSSE('status', { message: 'Generating complete project code...' });
+
+    let contextStr = "";
+    if (contextHistory && contextHistory.length > 0) {
+      contextStr = "Previous context from this session:\n";
+      contextHistory.forEach((item, index) => {
+        contextStr += `--- Context ${index + 1} ---\n${item.question}\n\n`;
+      });
+      contextStr += "Use the above context if relevant.\n\n";
+    }
+
+    const claudeModel = new ChatOpenAI({
+      model: "anthropic/claude-sonnet-4",
+      temperature: 0.1,
+      maxTokens: 64000,
+      streaming: true,
+      apiKey: process.env.OPENROUTER_API_KEY,
+      configuration: {
+        baseURL: "https://openrouter.ai/api/v1",
+        defaultHeaders: {
+          "HTTP-Referer": RAILWAY_URL,
+          "X-Title": "Windows V1",
+        }
+      }
+    });
+
+    console.log(`--- BATCH ASSIGNMENT: ${images.length} screenshots, ${combinedText.length} chars of extracted text ---`);
+
+    let fullResponse = "";
+    const stream = await claudeModel.stream([
+      ["system", ASSIGNMENT_BATCH_PROMPT],
+      ["user", contextStr + "Here is the COMPLETE assignment extracted from " + images.length + " screenshots. Analyze everything and generate the full project:\n\n" + combinedText]
+    ]);
+
+    for await (const chunk of stream) {
+      const text = typeof chunk.content === 'string' ? chunk.content : '';
+      if (!text) continue;
+      fullResponse += text;
+      sendSSE('chunk', { text });
+    }
+
+    console.log(`\n=== BATCH ASSIGNMENT COMPLETE: ${fullResponse.length} chars ===\n`);
+
+    sendSSE('done', {
+      extractedText: combinedText,
+      modelUsed: 'Assignment Solver (Claude Sonnet 4)',
+      totalLength: fullResponse.length,
+      screenshotCount: images.length
+    });
+
+    broadcastGlobalStealth({ text: fullResponse });
+
+    const token = req.headers['premium-token'];
+    logTokenUsage(token, {
+      modelUsed: 'Assignment Batch Solver (Streaming)',
+      extractedText: combinedText,
+      aiAnswers: fullResponse,
+      screenshotCount: images.length
+    });
+
+    res.end();
+
+  } catch (error) {
+    console.error('Batch assignment streaming error:', error);
     try {
       res.write(`event: error\ndata: ${JSON.stringify({ message: error.message })}\n\n`);
       res.end();
