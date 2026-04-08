@@ -1262,6 +1262,14 @@ function registerGlobalShortcuts() {
     retStealth = globalShortcut.register('Control+Alt+S', toggleStealthWindow);
   }
 
+  // Stealth overlay clear shortcut
+  globalShortcut.register('Control+Shift+C', () => {
+    if (stealthWindow && !stealthWindow.isDestroyed()) {
+      stealthWindow.webContents.send('stealth-clear');
+      console.log('Stealth overlay cleared via Control+Shift+C');
+    }
+  });
+
   // Global chat mode toggle (zero focus loss)
   globalShortcut.register('Control+Alt+J', () => {
     if (chatModeActive) exitChatMode();
@@ -1301,6 +1309,7 @@ function registerGlobalShortcuts() {
   console.log('- Ctrl+Shift+T (Debug Error):', globalShortcut.isRegistered('Control+Shift+T'));
   console.log('- Alt+X (Gemini MCQ):', globalShortcut.isRegistered('Alt+X') || globalShortcut.isRegistered('Alt+Y'));
   console.log('- Ctrl+Shift+S (Stealth):', globalShortcut.isRegistered('Control+Shift+S') || globalShortcut.isRegistered('Control+Alt+S'));
+  console.log('- Ctrl+Shift+C (Clear Stealth):', globalShortcut.isRegistered('Control+Shift+C'));
   console.log('- Ctrl+Alt+J (Chat Mode):', globalShortcut.isRegistered('Control+Alt+J'));
   console.log('- Ctrl+Q/Alt+Q/F5 (Kill Switch):', globalShortcut.isRegistered('Control+Q') || globalShortcut.isRegistered('Alt+Q') || globalShortcut.isRegistered('F5'));
 }

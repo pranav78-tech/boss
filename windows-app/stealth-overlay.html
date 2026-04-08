@@ -1498,7 +1498,9 @@
     btnClear.addEventListener('click', () => {
       attemptCount = 0;
       transcriptBuffer = '';
-      chatContext = [];
+      // chatContext = []; // Purposely keep context when UI clears
+      screenshotQueue = [];
+      updateQueueUI();
       unifiedContainer.innerHTML = '';
       if (placeholderPrompt) {
         placeholderPrompt.style.display = 'block';
@@ -1512,7 +1514,9 @@
     ipcRenderer.on('stealth-clear', () => {
       attemptCount = 0;
       transcriptBuffer = '';
-      chatContext = [];
+      // chatContext = []; // Purposely keep context when UI clears
+      screenshotQueue = [];
+      updateQueueUI();
       unifiedContainer.innerHTML = '';
       if (placeholderPrompt) {
         placeholderPrompt.style.display = 'block';

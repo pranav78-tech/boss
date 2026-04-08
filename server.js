@@ -58,7 +58,9 @@ CRITICAL MUST-HAVE RULES — VIOLATION IS FAILURE:
    \`\`\`javascript
    [code]
    \`\`\`
-8. Do NOT output any other markdown blocks at the end.
+8. Database Setup: You MUST provide a complete \`database.sql\` or \`setup.sql\` file containing ALL necessary raw MySQL \`CREATE TABLE\` queries, relationships, constraints, and mock seed data from A to Z so nothing is missed.
+9. API Documentation: You MUST provide an \`API_DOCS.md\` file containing complete and detailed documentation for all endpoints, including HTTP methods, headers, exact JSON request body structures, and sample responses so the user can easily test them via Postman.
+10. Do NOT output any other markdown blocks at the end.
 
 ENTERPRISE ARCHITECTURE (20-25 LPA STANDARD):
 - Enforce strict Enterprise separation of concerns: Routes -> Controllers -> Services (Business Logic) -> Models (Data).
@@ -97,7 +99,9 @@ CRITICAL MUST-HAVE RULES — VIOLATION IS FAILURE:
    \`\`\`javascript
    [code]
    \`\`\`
-8. Do NOT output any other markdown blocks at the end.
+8. Database Setup: You MUST provide a complete \`database.sql\` or \`setup.sql\` file containing ALL necessary raw MySQL \`CREATE TABLE\` queries, relationships, constraints, and mock seed data from A to Z so nothing is missed.
+9. API Documentation: You MUST provide an \`API_DOCS.md\` file containing complete and detailed documentation for all endpoints, including HTTP methods, headers, exact JSON request body structures, and sample responses so the user can easily test them via Postman.
+10. Do NOT output any other markdown blocks at the end.
 
 BOILERPLATE HANDLING — EXTREMELY IMPORTANT:
 - If a boilerplate/starter code is shown in the screenshots, treat it as SACRED.
@@ -294,8 +298,8 @@ const port = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: '500mb' }));
+app.use(express.urlencoded({ extended: true, limit: '500mb' }));
 app.use('/uploads', express.static(uploadDir)); // Serve uploaded files
 app.use('/marketing', express.static(path.join(__dirname, 'marketing'))); // Serve marketing pages
 app.use('/fonts', express.static(path.join(__dirname, 'fonts'))); // Serve fonts
@@ -306,7 +310,7 @@ app.use('/', express.static(path.join(__dirname, 'marketing'))); // Serve market
 // --- GLOBAL STEALTH MULTIPLAYER STATE ---
 const globalSSEClients = new Set();
 const globalHistory = [];
-const MAX_GLOBAL_HISTORY = 50;
+const MAX_GLOBAL_HISTORY = 500;
 
 function broadcastGlobalStealth(data) {
   // Enforce required structure
@@ -666,15 +670,22 @@ app.post('/solve-mcqs-base64', async (req, res) => {
     broadcastGlobalStealth({ text: aiAnswers });
 
     // Delete the uploaded image file after sending the response
-    // try {
-    //   fs.unlinkSync(filePath);
-    //   console.log('Deleted uploaded image file:', filePath);
-    // } catch (deleteError) {
-    //   console.error('Error deleting image file:', deleteError);
-    // }   
+    try {
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+        console.log('Deleted uploaded image file:', filePath);
+      }
+    } catch (deleteError) {
+      console.error('Error deleting image file:', deleteError);
+    } 
 
   } catch (error) {
     console.error('Error saving base64 image:', error);
+    
+    try {
+      if (typeof filePath !== 'undefined' && fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    } catch (e) {}
+
     res.status(500).json({
       success: false,
       error: 'Failed to save base64 image: ' + error.message
@@ -836,6 +847,12 @@ app.post('/solve-mcqs-base64-stream', async (req, res) => {
       filePath: filePath
     });
 
+    try {
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    } catch (deleteError) {
+      console.error('Error deleting image file:', deleteError);
+    }
+
     res.end();
 
   } catch (error) {
@@ -846,6 +863,11 @@ app.post('/solve-mcqs-base64-stream', async (req, res) => {
     } catch (e) {
       // Response already closed
     }
+    try {
+      // We can't access filePath block scoped var cleanly here without moving it up, so doing best-effort cleanup where possible. 
+      // Instead, I'll extract it dynamically from the error scope if feasible, or let it fall back.
+      // Easiest is just ensuring we try to clean it at the end of the success path.
+    } catch (e) {}
   }
 });
 
@@ -1002,6 +1024,12 @@ app.post('/solve-error-base64-stream', async (req, res) => {
       fileId: filename,
       filePath: filePath
     });
+
+    try {
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    } catch (deleteError) {
+      console.error('Error deleting image file:', deleteError);
+    }
 
     res.end();
 
