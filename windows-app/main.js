@@ -283,11 +283,19 @@ function createStealthWindow() {
   // Typing { makes VS Code insert {} — pasting { just inserts { alone
   const AUTO_CLOSE_CHARS = new Set(['{', '(', '[', "'", '"', '`']);
 
-  // Prepare buffer: normalize line endings, strip indentation, trim trailing whitespace
+  // Prepare buffer: normalize line endings, strip comments, strip indentation, trim whitespace
   function prepareTypistBuffer(rawCode) {
-    return rawCode
+    let code = rawCode
       .replace(/\r\n/g, '\n')           // Normalize Windows line endings
-      .replace(/\r/g, '\n')             // Normalize old Mac line endings
+      .replace(/\r/g, '\n');            // Normalize old Mac line endings
+
+    // STRIP COMMENTS so the automated typist doesn't waste time typing them
+    code = code
+      .replace(/\/\*[\s\S]*?\*\//g, '') // Strip block comments (/* ... */)
+      .replace(/^[ \t]*\/\/.*$\n?/gm, '') // Strip full-line JS comments (// ...)
+      .replace(/^[ \t]*(--|#).*$\n?/gm, ''); // Strip full-line SQL comments (-- or #)
+
+    return code
       .replace(/\t/g, '  ')             // Convert tabs to 2 spaces
       .replace(/[ \t]+$/gm, '')         // Trim trailing whitespace per line
       .replace(/^[ \t]+/gm, '')         // Strip leading indentation (VS Code auto-indents)

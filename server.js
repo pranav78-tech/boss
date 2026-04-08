@@ -41,14 +41,14 @@ RULES:
 - For complex bugs (logic errors, function rewrites, multiple interconnected issues): show as much code as needed — entire functions, multiple blocks, whatever it takes to make the fix clear and complete. Do NOT hold back.
 - If multiple files have issues, show a separate block for each file.
 - NEVER output the ENTIRE project. But do show complete functions or sections when the fix demands it.
-- ZERO code comments in the fix. Raw code only.
+- INCLUDE COMMENTS in the fixed code. Explain your logic so the user clearly understands what was fixed and why.
 - If the fix requires adding a NEW file, output it fully using: ### NEW FILE: [path] followed by the code block.
 - Be practical — the user should be able to copy-paste your fix and have it work immediately.`;
 
 const PROJECT_GENERATOR_PROMPT = `You are a top-tier backend engineer generating Node.js + Express project files for a strict 25 LPA technical assessment. Regardless of the input image, you MUST output a fully functional backend API project.
 CRITICAL MUST-HAVE RULES — VIOLATION IS FAILURE:
 1. OUTPUT ONLY SOURCE CODE FILES. No explanations, no README, no bash interactions.
-2. ZERO COMMENTS. None. Code only.
+2. DETAILED COMMENTS REQUIRED. Heavily comment the code itself (within the file) so the user can easily understand the business logic and structure.
 3. ABSOLUTELY ZERO SYNTAX ERRORS. Code MUST run perfectly on the first try. Ensure all imports match usage perfectly.
 4. Setup Block: Start with ONE single line: "## Project [ProjectName]"
 5. Followed by ONE text code block showing the file tree (NO emojis).
@@ -89,7 +89,7 @@ Your job is to analyze ALL the extracted text from every screenshot, understand 
 
 CRITICAL MUST-HAVE RULES — VIOLATION IS FAILURE:
 1. OUTPUT ONLY SOURCE CODE FILES. No explanations, no README, no bash interactions.
-2. ZERO COMMENTS. None. Code only.
+2. DETAILED COMMENTS REQUIRED. Heavily comment the code itself (within the file) so the user can easily understand the business logic and structure.
 3. ABSOLUTELY ZERO SYNTAX ERRORS. Code MUST run perfectly on the first try. Ensure all imports match usage perfectly.
 4. Setup Block: Start with ONE single line: "## Project [ProjectName]"
 5. Followed by ONE text code block showing the file tree (NO emojis).
