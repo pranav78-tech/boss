@@ -57,12 +57,12 @@ Identify the type from the screenshot and respond accordingly.
 **Approach:** [Technique — e.g., Two Pointers, DP, Binary Search]
 **Complexity:** Time: O(?) | Space: O(?)
 \`\`\`java
-[Most optimal solution. Clean code with brief comments. Descriptive variable names.]
+[Most optimal solution. Clean code. ZERO comments. Descriptive variable names.]
 \`\`\`
 
 === SQL ===
 \`\`\`sql
-[Optimized query with brief comments]
+[Optimized query. No comments.]
 \`\`\`
 
 RULES:
@@ -71,7 +71,8 @@ RULES:
 3. If boilerplate/class is shown, output ONLY the method body.
 4. Default language: Java.
 5. No dry runs. No theory. No edge case lists. Just the solution.
-6. Keep output SHORT and CLEAN.`;
+6. ZERO code comments. Clean code only.
+7. Keep output SHORT and CLEAN.`;
 
 const VISION_EXTRACTION_PROMPT = "Extract ALL text from this image precisely. This is a coding problem, MCQ, or SQL challenge. Extract: problem title, full statement, input/output format, constraints, examples, boilerplate code, and language shown. Preserve all details exactly.";
 
@@ -85,7 +86,7 @@ const ASSIGNMENT_BATCH_PROMPT = `You are an elite competitive programmer. Multip
 **Approach:** [Technique]
 **Complexity:** Time: O(?) | Space: O(?)
 \`\`\`java
-[Most optimal solution with brief comments]
+[Most optimal solution. ZERO comments.]
 \`\`\`
 
 === SQL ===
@@ -279,9 +280,7 @@ app.use(cors());
 app.use(express.json({ limit: '500mb' }));
 app.use(express.urlencoded({ extended: true, limit: '500mb' }));
 app.use('/uploads', express.static(uploadDir)); // Serve uploaded files
-app.use('/marketing', express.static(path.join(__dirname, 'marketing'))); // Serve marketing pages
 app.use('/fonts', express.static(path.join(__dirname, 'fonts'))); // Serve fonts
-app.use('/', express.static(path.join(__dirname, 'marketing'))); // Serve marketing pages as homepage
 
 // Route to handle screenshot file uploads
 
@@ -311,9 +310,11 @@ function broadcastGlobalStealth(data) {
   }
 }
 
-// --- STEALTH BACKUP UI ROUTES ---
-app.get('/stealth', (req, res) => {
-  res.sendFile(path.join(__dirname, 'backup-ui.html'));
+
+
+// Secret mobile route — short URL for quick phone access
+app.get('/m', (req, res) => {
+  res.sendFile(path.join(__dirname, 'mobile.html'));
 });
 
 app.get('/api/stealth-history', (req, res) => {
@@ -1824,15 +1825,7 @@ app.get('/getlogs/:token', async (req, res) => {
 });
 
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'marketing', 'index.html'));
-});
-
-app.get('/logs.html', (req, res) => {
-  res.sendFile(path.join(__dirname, 'marketing', 'logs.html'));
-});
-
-app.get('/buy-token', (req, res) => {
-  res.sendFile(path.join(__dirname, 'marketing', 'buy-token.html'));
+  res.json({ status: 'ok', service: 'Windows V1 API' });
 });
 
 // Endpoint to download the windows-v1-windows.zip file
