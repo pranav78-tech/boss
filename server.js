@@ -21,111 +21,138 @@ dotenv.config();
 
 const RAILWAY_URL = 'https://boss-production-3b9c.up.railway.app/';
 
-const DEBUG_MODIFICATION_PROMPT = `You are a senior backend engineer debugging an application.
-The user has captured a screenshot of their code, an error log, or a crash report.
+const DEBUG_MODIFICATION_PROMPT = `You are an elite competitive programmer and debugging expert.
+The user has captured a screenshot of their code with an error, wrong output, TLE, MLE, or a failing test case.
 
-Your job is to identify the bug and provide a clear, focused fix.
+Your job is to identify the bug and provide the corrected code.
 
 RESPONSE FORMAT:
-1. **Error:** One line saying what the error is.
-2. **Cause:** 2-3 sentences explaining WHY it happened and what's going wrong.
-3. **Fix:** Show the corrected code with enough surrounding context so the user knows exactly WHERE to apply it. Use this format:
+1. **Bug:** One line identifying the exact issue.
+2. **Why:** 2-3 sentences explaining the root cause — off-by-one, wrong data structure, missing edge case, etc.
+3. **Fix:** Show the corrected code. Use this format:
 
-**File:** \`path/to/file.js\`  (line ~XX)
-\`\`\`javascript
-[corrected code with surrounding context]
+\`\`\`[language]
+[corrected code — complete function/method body]
 \`\`\`
 
 RULES:
-- For simple bugs (typo, wrong variable, missing import): show just the relevant section.
-- For complex bugs (logic errors, function rewrites, multiple interconnected issues): show as much code as needed — entire functions, multiple blocks, whatever it takes to make the fix clear and complete. Do NOT hold back.
-- If multiple files have issues, show a separate block for each file.
-- NEVER output the ENTIRE project. But do show complete functions or sections when the fix demands it.
-- INCLUDE COMMENTS in the fixed code. Explain your logic so the user clearly understands what was fixed and why.
-- If the fix requires adding a NEW file, output it fully using: ### NEW FILE: [path] followed by the code block.
-- Be practical — the user should be able to copy-paste your fix and have it work immediately.`;
+- For simple bugs (off-by-one, wrong operator, missing base case): show just the corrected function.
+- For algorithmic bugs (wrong approach, TLE, MLE): rewrite the entire solution with the optimal approach.
+- INCLUDE line-by-line comments explaining the fix and the algorithm logic.
+- Output ONLY the method/function body unless the bug is in class structure or imports.
+- Use the SAME language as the original code. Default to Java if unclear.
+- If the problem is TLE: provide the optimal O(n) or O(n log n) solution.
+- If the problem is MLE: optimize space usage, convert recursion to iteration if needed.
+- The fixed code MUST pass all test cases immediately. No partial fixes.`;
 
-const PROJECT_GENERATOR_PROMPT = `You are a top-tier backend engineer generating Node.js + Express project files for a strict 25 LPA technical assessment. Regardless of the input image, you MUST output a fully functional backend API project.
-CRITICAL MUST-HAVE RULES — VIOLATION IS FAILURE:
-1. OUTPUT ONLY SOURCE CODE FILES. No explanations, no README, no bash interactions.
-2. DETAILED COMMENTS REQUIRED. Heavily comment the code itself (within the file) so the user can easily understand the business logic and structure.
-3. ABSOLUTELY ZERO SYNTAX ERRORS. Code MUST run perfectly on the first try. Ensure all imports match usage perfectly.
-4. Setup Block: Start with ONE single line: "## Project [ProjectName]"
-5. Followed by ONE text code block showing the file tree (NO emojis).
-6. Followed by EXACT \`npm install <dependencies>\` command block.
-7. Next, output files exactly strictly using:
-   ### FILE: [path/to/file]
-   \`\`\`javascript
-   [code]
-   \`\`\`
-8. Database Setup: You MUST provide a complete \`database.sql\` or \`setup.sql\` file containing ALL necessary raw MySQL \`CREATE TABLE\` queries, relationships, constraints, and mock seed data from A to Z so nothing is missed.
-9. API Documentation: You MUST provide an \`API_DOCS.md\` file containing complete and detailed documentation for all endpoints, including HTTP methods, headers, exact JSON request body structures, and sample responses so the user can easily test them via Postman.
-10. Do NOT output any other markdown blocks at the end.
+const PROJECT_GENERATOR_PROMPT = `You are an elite competitive programmer solving a LIVE ONLINE ASSESSMENT. You MUST perform perfectly — there are NO second chances.
 
-ENTERPRISE ARCHITECTURE (20-25 LPA STANDARD):
-- Enforce strict Enterprise separation of concerns: Routes -> Controllers -> Services (Business Logic) -> Models (Data).
-- Use a dedicated \`utils/AppError.js\` class for operational errors.
-- Include a robust centralized \`middleware/errorHandler.js\` that catches unhandled rejections and securely formats API error responses.
-- Abstract all database interactions into the Service layer.
+CRITICAL: You are solving DSA problems, MCQs, SQL queries, or coding challenges from a screenshot. Identify the type and respond accordingly.
 
-TECHNOLOGY STACK & PRODUCTION CODE RULES:
-- Node.js ES modules ("type": "module" in package.json), Express.js, dotenv.
-- Sequelize ORM for models/CRUD AND complex queries (or raw MySQL if explicitly requested).
-- async/await everywhere. ZERO use of \`then()\` or callbacks.
-- Advanced input validation before any DB hit.
-- Secure, parameterized DB interactions.
-- Return structured JSON responses strictly: { status: "success", data: ... }.
-- Always wrap controllers in an async error handler or strict try/catch with \`next(err)\`.`;
+=== IF IT IS AN MCQ (Multiple Choice Question) ===
+Respond with:
+**Answer: [Option Letter]**
+**Explanation:** [2-3 sentences with technical reasoning why this is correct and why others are wrong]
 
-const VISION_EXTRACTION_PROMPT = "Look at this image and extract ALL text. This is a project assignment or technical requirement document. Extract the project title, description, tech stack requirements, features needed, API endpoints listed, database schema requirements, constraints, deadline info, and any specific instructions. Preserve all details exactly as written.";
+=== IF IT IS A DSA / CODING PROBLEM ===
+Format your response EXACTLY like this:
 
-const ASSIGNMENT_BATCH_PROMPT = `You are a top-tier backend engineer. You have been given MULTIPLE screenshots from a single hiring assignment. The screenshots contain:
-- The assignment description, requirements, and constraints
-- Possibly a boilerplate/starter code structure
-- Database schema or API endpoint specifications
-- Any specific rules or evaluation criteria
+**Problem:** [Problem name/title in one line]
 
-Your job is to analyze ALL the extracted text from every screenshot, understand the COMPLETE assignment, and generate the FULL working project.
+**Approach:** [Technique name — e.g., Two Pointers, Binary Search, DP, Sliding Window, etc.]
 
-CRITICAL MUST-HAVE RULES — VIOLATION IS FAILURE:
-1. OUTPUT ONLY SOURCE CODE FILES. No explanations, no README, no bash interactions.
-2. DETAILED COMMENTS REQUIRED. Heavily comment the code itself (within the file) so the user can easily understand the business logic and structure.
-3. ABSOLUTELY ZERO SYNTAX ERRORS. Code MUST run perfectly on the first try. Ensure all imports match usage perfectly.
-4. Setup Block: Start with ONE single line: "## Project [ProjectName]"
-5. Followed by ONE text code block showing the file tree (NO emojis).
-6. Followed by EXACT \`npm install <dependencies>\` command block.
-7. Next, output files exactly strictly using:
-   ### FILE: [path/to/file]
-   \`\`\`javascript
-   [code]
-   \`\`\`
-8. Database Setup: You MUST provide a complete \`database.sql\` or \`setup.sql\` file containing ALL necessary raw MySQL \`CREATE TABLE\` queries, relationships, constraints, and mock seed data from A to Z so nothing is missed.
-9. API Documentation: You MUST provide an \`API_DOCS.md\` file containing complete and detailed documentation for all endpoints, including HTTP methods, headers, exact JSON request body structures, and sample responses so the user can easily test them via Postman.
-10. Do NOT output any other markdown blocks at the end.
+**Intuition:**
+[3-5 lines explaining the core idea and WHY this approach works]
 
-BOILERPLATE HANDLING — EXTREMELY IMPORTANT:
-- If a boilerplate/starter code is shown in the screenshots, treat it as SACRED.
-- DO NOT regenerate or modify files that already exist in the boilerplate UNLESS the assignment EXPLICITLY asks you to edit that specific file.
-- DO NOT touch: package.json, .env, config files, database connection files, server entry points, or any setup files that are already provided and working.
-- ONLY output files that need to be CREATED NEW (routes, controllers, services, models that don't exist yet).
-- If you must modify an existing boilerplate file (e.g. adding a new route import to app.js), output ONLY that file with MINIMAL changes — keep everything else in that file exactly as-is.
-- When in doubt, DO NOT modify. Only create new files.
+**Complexity:**
+Time: O(?) | Space: O(?)
 
-ENTERPRISE ARCHITECTURE (20-25 LPA STANDARD):
-- Enforce strict Enterprise separation of concerns: Routes -> Controllers -> Services (Business Logic) -> Models (Data).
-- Use a dedicated \`utils/AppError.js\` class for operational errors.
-- Include a robust centralized \`middleware/errorHandler.js\` that catches unhandled rejections and securely formats API error responses.
-- Abstract all database interactions into the Service layer.
+**Code:**
+\`\`\`[language — match the assessment platform language, default to Java if unclear]
+[Complete, working, optimally efficient code]
+[EVERY line must have a comment explaining what it does]
+[Use highly descriptive variable names based on problem context — NO generic names like res, ans, temp]
+\`\`\`
 
-TECHNOLOGY STACK & PRODUCTION CODE RULES:
-- Node.js with Express.js and dotenv.
-- Use Sequelize ORM for models/CRUD AND raw SQL (via sequelize.query) for complex queries.
-- If the assignment specifies raw SQL only, use mysql2/promise with parameterized queries.
-- async/await everywhere. ZERO use of \`then()\` or callbacks.
-- Advanced input validation before any DB hit.
-- Secure, parameterized DB interactions.
-- Return structured JSON responses strictly: { status: "success", data: ... }.
-- Always wrap controllers in an async error handler or strict try/catch with \`next(err)\`.`;
+**Dry Run:**
+[Pick the first example from the problem]
+[Show step-by-step execution with actual variable values at each step]
+[Format: Step 1 → Step 2 → ... → Final Answer]
+
+**Edge Cases:**
+- [Edge case 1 — e.g., empty array, single element, all duplicates]
+- [Edge case 2]
+- [Edge case 3]
+
+=== IF IT IS A SQL QUERY ===
+Respond with:
+\`\`\`sql
+[Complete, optimized SQL query with comments on each clause]
+\`\`\`
+**Explanation:** [Brief walkthrough of the query logic — JOINs, WHERE, GROUP BY reasoning]
+
+=== UNIVERSAL RULES — VIOLATION IS FAILURE ===
+1. CODE MUST BE 100% CORRECT. It must pass ALL hidden test cases on first submission.
+2. Always use the MOST OPTIMAL algorithm. Brute force is NEVER acceptable unless constraints allow it.
+3. Use descriptive variable names — NO single letters except loop indices (i, j, k).
+4. Include detailed line-by-line comments in ALL code.
+5. If a boilerplate/class structure is shown, output ONLY the method body. Do NOT rewrite the class or method signature.
+6. Default language: Java (unless the screenshot clearly shows C++, Python, or JavaScript).
+7. For DP problems: always show the recurrence relation before the code.
+8. For graph problems: always state BFS vs DFS and why.
+9. NO markdown formatting outside code blocks. Keep output clean and readable.
+10. Be concise but complete — every section must be present.`;
+
+const VISION_EXTRACTION_PROMPT = "Look at this image and extract ALL text precisely. This is a coding problem, MCQ question, SQL query challenge, or DSA assessment screenshot. Extract: the problem title, full problem statement, input/output format, constraints (especially N ranges), example inputs and outputs, any notes or hints, the programming language shown, any boilerplate/starter code visible, and any specific instructions. Preserve all details EXACTLY as written — especially numerical constraints and edge case notes.";
+
+const ASSIGNMENT_BATCH_PROMPT = `You are an elite competitive programmer. You have been given MULTIPLE screenshots from a single coding assessment or online test. The screenshots may contain:
+- DSA problem statements with constraints and examples
+- Multiple MCQ questions (theory, output prediction, code analysis)
+- SQL queries or database schema questions
+- Boilerplate/starter code that must be preserved
+- Multiple parts of the same problem split across screenshots
+
+Your job is to analyze ALL extracted text from every screenshot, understand the COMPLETE problem(s), and provide the FULL solution.
+
+=== FOR EACH PROBLEM/QUESTION FOUND ===
+
+**MCQ Questions:**
+For each MCQ, respond:
+**Q[number]: Answer: [Letter]**
+**Explanation:** [2-3 sentences]
+
+**DSA/Coding Problems:**
+For each coding problem, respond with the full format:
+
+**Problem:** [Title]
+**Approach:** [Technique]
+**Intuition:** [3-5 lines]
+**Complexity:** Time: O(?) | Space: O(?)
+**Code:**
+\`\`\`[language]
+[Complete optimal solution with line-by-line comments]
+[Descriptive variable names — NO generic res, ans, temp]
+\`\`\`
+**Dry Run:** [Step-by-step with actual values from Example 1]
+**Edge Cases:** [2-3 edge cases]
+
+**SQL Questions:**
+\`\`\`sql
+[Optimized query with comments]
+\`\`\`
+**Explanation:** [Query logic walkthrough]
+
+=== CRITICAL RULES ===
+1. Solve EVERY question found across ALL screenshots. Do NOT skip any.
+2. If screenshots show parts of the SAME problem, combine them into one complete solution.
+3. BOILERPLATE IS SACRED — if starter code is shown, output ONLY the method body. Never rewrite class/method signatures.
+4. ALL code must be the MOST OPTIMAL solution possible. Must pass all hidden test cases.
+5. Default language: Java unless another language is clearly shown.
+6. For MCQs: be 100% certain of the answer. Explain why wrong options are wrong.
+7. Include detailed comments in all code.
+8. Use descriptive variable names based on problem context.
+9. NO filler text, NO emojis in the solution sections.
+10. Output solutions in the SAME ORDER as they appear in the screenshots.`;
 
 
 
@@ -206,19 +233,23 @@ async function sendTokenEmail(email, token) {
 // Structure: { token: { model: 'model-name', count: number } }
 const tokenModelMap = new Map();
 
+// Model constants — Sonnet as primary (fast + cost-effective), Opus as fallback (heavy reasoning)
+const PRIMARY_MODEL = "anthropic/claude-sonnet-4.6";
+const FALLBACK_MODEL = "anthropic/claude-opus-4.6";
+
 // Add default premium tokens for manual use
-tokenModelMap.set('my-batman-17', { model: "anthropic/claude-opus-4.6", count: 999999 });
-tokenModelMap.set('admin-token', { model: "anthropic/claude-opus-4.6", count: 999999 });
-tokenModelMap.set('premium-2026', { model: "anthropic/claude-opus-4.6", count: 999999 });
+tokenModelMap.set('my-batman-17', { model: PRIMARY_MODEL, count: 999999 });
+tokenModelMap.set('admin-token', { model: PRIMARY_MODEL, count: 999999 });
+tokenModelMap.set('premium-2026', { model: PRIMARY_MODEL, count: 999999 });
 
 // In-memory logs storage
 const tokenLogs = new Map();
 
 // Function to get model based on token
 async function getModelForToken(token) {
-  // If no token is provided, use the default kimi model
+  // If no token is provided, use the default primary model
   if (!token) {
-    return "anthropic/claude-opus-4.6";
+    return PRIMARY_MODEL;
   }
 
   // Use in-memory Map
@@ -233,7 +264,7 @@ async function getModelForToken(token) {
   }
 
   // If token is provided but not found or count is zero, use default model
-  return "anthropic/claude-opus-4.6";
+  return PRIMARY_MODEL;
 }
 
 // Function to log token usage
@@ -430,7 +461,7 @@ app.post('/solve-mcqs', upload.single('screenshot'), async (req, res) => {
     try {
       console.log('--- STEP 3: Running Project Generator ---');
       const claudeModel = new ChatOpenAI({
-        model: "anthropic/claude-opus-4.6",
+        model: PRIMARY_MODEL,
         temperature: 0.1,
         maxTokens: 16000,
         apiKey: process.env.OPENROUTER_API_KEY,
@@ -608,7 +639,7 @@ app.post('/solve-mcqs-base64', async (req, res) => {
       }
 
       const claudeModel = new ChatOpenAI({
-        model: "anthropic/claude-opus-4.6",
+        model: PRIMARY_MODEL,
         temperature: 0.1,
         maxTokens: 16000,
         apiKey: process.env.OPENROUTER_API_KEY,
@@ -789,7 +820,7 @@ app.post('/solve-mcqs-base64-stream', async (req, res) => {
     }
 
     const claudeModel = new ChatOpenAI({
-      model: "anthropic/claude-opus-4.6",
+      model: PRIMARY_MODEL,
       temperature: 0.1,
       maxTokens: 16000,
       streaming: true,
@@ -803,7 +834,7 @@ app.post('/solve-mcqs-base64-stream', async (req, res) => {
       }
     });
 
-    console.log('--- STREAMING: Running Project Generator ---');
+    console.log('--- STREAMING: Running Project Generator (Sonnet 4.6) ---');
 
     let fullResponse = "";
     let hasStartedStep1 = false;
@@ -967,7 +998,7 @@ app.post('/solve-error-base64-stream', async (req, res) => {
     }
 
     const claudeModel = new ChatOpenAI({
-      model: "anthropic/claude-opus-4.6",
+      model: PRIMARY_MODEL,
       temperature: 0.1,
       maxTokens: 16000,
       streaming: true,
@@ -981,7 +1012,7 @@ app.post('/solve-error-base64-stream', async (req, res) => {
       }
     });
 
-    console.log('--- STREAMING: Running Project Generator ---');
+    console.log('--- STREAMING: Running Error Debugger (Sonnet 4.6) ---');
 
     let fullResponse = "";
     let hasStartedStep1 = false;
@@ -1126,7 +1157,7 @@ app.post('/solve-assignment-batch-stream', async (req, res) => {
     }
 
     const claudeModel = new ChatOpenAI({
-      model: "anthropic/claude-opus-4.6",
+      model: PRIMARY_MODEL,
       temperature: 0.1,
       maxTokens: 64000,
       streaming: true,
@@ -1196,7 +1227,7 @@ app.post('/chat', async (req, res) => {
     }
 
     const chatModel = new ChatOpenAI({
-      model: "anthropic/claude-opus-4.6",
+      model: PRIMARY_MODEL,
       temperature: 0.1,
       apiKey: process.env.OPENROUTER_API_KEY,
       configuration: {
@@ -1276,7 +1307,7 @@ app.post('/chat-stream', async (req, res) => {
     };
 
     const chatModel = new ChatOpenAI({
-      model: "anthropic/claude-opus-4.6",
+      model: PRIMARY_MODEL,
       temperature: 0.1,
       streaming: true,
       apiKey: process.env.OPENROUTER_API_KEY,
@@ -1469,7 +1500,7 @@ app.post('/solve-mcqs-base64-Gemini', async (req, res) => {
     // --- STEP 3: REASONING & SOLVING (Auto-Router: DeepSeek Free vs Kimi) ---
     let aiAnswers = null;
 
-    let actualModelUsed = "anthropic/claude-opus-4.6";
+    let actualModelUsed = PRIMARY_MODEL;
     try {
       // Build context string from history if provided
       let contextStr = "";
@@ -1482,8 +1513,8 @@ app.post('/solve-mcqs-base64-Gemini', async (req, res) => {
       }
 
       const modelsToTry = [
-        { id: "anthropic/claude-opus-4.6", provider: "openrouter" },
-        { id: "anthropic/claude-opus-4.6", provider: "openrouter" }
+        { id: PRIMARY_MODEL, provider: "openrouter" },
+        { id: FALLBACK_MODEL, provider: "openrouter" }
       ];
 
       let success = false;
