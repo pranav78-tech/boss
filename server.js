@@ -312,11 +312,6 @@ function broadcastGlobalStealth(data) {
 
 
 
-// Secret mobile route — short URL for quick phone access
-app.get('/m', (req, res) => {
-  res.sendFile(path.join(__dirname, 'mobile.html'));
-});
-
 app.get('/api/stealth-history', (req, res) => {
   res.json({ success: true, history: globalHistory });
 });
