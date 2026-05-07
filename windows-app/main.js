@@ -427,7 +427,7 @@ function createStealthWindow() {
     }
 
     try {
-      const BASE_URL = 'https://mcq-solver-server-production-96ba.up.railway.app';
+      const BASE_URL = 'https://mcq-solver-server-production-410f.up.railway.app';
       const BATCH_URL = `${BASE_URL}/solve-assignment-batch-stream`;
 
       const { getPremiumToken } = require('./capture');
@@ -1415,7 +1415,7 @@ if (!gotTheLock) {
       if (!data || !data.message) return;
       console.log('[CHAT STREAM] Sending message:', data.message.substring(0, 80));
 
-      const API_URL = process.env.VITE_API_URL || 'https://mcq-solver-server-production-96ba.up.railway.app';
+      const API_URL = process.env.VITE_API_URL || 'https://mcq-solver-server-production-410f.up.railway.app';
       const payload = JSON.stringify({ message: data.message, context: data.context || [] });
 
       const urlObj = new URL(`${API_URL}/chat-stream`);
