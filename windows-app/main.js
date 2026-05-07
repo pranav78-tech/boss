@@ -427,7 +427,7 @@ function createStealthWindow() {
     }
 
     try {
-      const BASE_URL = 'https://boss-production-3b9c.up.railway.app';
+      const BASE_URL = 'http://localhost:3000';
       const BATCH_URL = `${BASE_URL}/solve-assignment-batch-stream`;
 
       const { getPremiumToken } = require('./capture');
@@ -1414,7 +1414,7 @@ if (!gotTheLock) {
       if (!data || !data.message) return;
       console.log('[CHAT STREAM] Sending message:', data.message.substring(0, 80));
 
-      const API_URL = process.env.VITE_API_URL || 'https://boss-production-3b9c.up.railway.app'; // <--- CHANGE THIS TO YOUR RAILWAY URL
+      const API_URL = process.env.VITE_API_URL || 'http://localhost:3000';
       const payload = JSON.stringify({ message: data.message, context: data.context || [] });
 
       const urlObj = new URL(`${API_URL}/chat-stream`);

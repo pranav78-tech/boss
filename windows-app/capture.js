@@ -9,7 +9,7 @@ let contextHistory = [];
 const MAX_HISTORY_LENGTH = 5;
 
 // Server URL
-const BASE_URL = 'https://boss-production-3b9c.up.railway.app';
+const BASE_URL = 'http://localhost:3000';
 const SERVER_URL = `${BASE_URL}/solve-mcqs-base64`;
 const OCR_SERVER_URL = `${BASE_URL}/perform-ocr`;
 const FALLBACK_SERVER_URL = `${BASE_URL}/solve-mcqs-base64`;
