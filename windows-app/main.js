@@ -1140,6 +1140,7 @@ async function captureAndDebugError() {
   const captureStartTime = Date.now();
   try {
     console.log('Capturing screen for error debugging...');
+    showStealthOverlay();
 
     if (stealthWindow && !stealthWindow.isDestroyed()) {
       stealthWindow.webContents.send('stealth-stream-start', { captureStartTime });
