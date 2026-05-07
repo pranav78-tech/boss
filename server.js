@@ -16,7 +16,7 @@ import os from 'os';
 // Load environment variables
 dotenv.config();
 
-const RAILWAY_URL = 'http://localhost:3000';
+const RAILWAY_URL = 'https://mcq-solver-server-production-96ba.up.railway.app';
 
 const DEBUG_MODIFICATION_PROMPT = `You are an elite competitive programmer and debugging expert.
 The user has captured a screenshot of their code with an error.
