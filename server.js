@@ -1108,7 +1108,7 @@ app.post('/solve-assignment-batch-stream', async (req, res) => {
 
     let fullResponse = "";
     const stream = await claudeModel.stream([
-      ["system", ASSIGNMENT_BATCH_PROMPT],
+      ["system", DSA_FORCE_PROMPT],
       ["user", contextStr + "Here are the problems extracted from " + images.length + " screenshots. Solve everything:\n\n" + combinedText]
     ]);
 
