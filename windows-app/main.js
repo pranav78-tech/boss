@@ -1242,16 +1242,17 @@ function registerGlobalShortcuts() {
   globalShortcut.register('Control+Shift+G', captureToQueue);
 
   // Try to register shortcut for capture and display without auto-typing
-  let ret2 = globalShortcut.register('Control+Shift+H', captureAndDisplay);
+  // let ret2 = globalShortcut.register('Control+Shift+H', captureAndDisplay);
+  let ret2 = true; // Disabled by user
 
   // New debugging shortcut
   globalShortcut.register('Control+Shift+T', captureAndDebugError);
 
   // If failed, try alternative
-  if (!ret2) {
-    console.log('Trying alternative shortcut for capture and display...');
-    ret2 = globalShortcut.register('Control+Alt+R', captureAndDisplay);
-  }
+  // if (!ret2) {
+  //   console.log('Trying alternative shortcut for capture and display...');
+  //   ret2 = globalShortcut.register('Control+Alt+R', captureAndDisplay);
+  // }
 
   // Try to register shortcut for capture and Gemini API processing with cursor display
   let ret3 = globalShortcut.register('Alt+X', captureAndDisplayWithGemini);
@@ -1314,7 +1315,7 @@ function registerGlobalShortcuts() {
   console.log('Global shortcuts registered:');
   console.log('- Ctrl+Shift+P (Batch Solve):', globalShortcut.isRegistered('Control+Shift+P'));
   console.log('- Ctrl+Shift+G (Queue Capture):', globalShortcut.isRegistered('Control+Shift+G'));
-  console.log('- Ctrl+Shift+H (Instant Solve):', globalShortcut.isRegistered('Control+Shift+H') || globalShortcut.isRegistered('Control+Alt+R'));
+  // console.log('- Ctrl+Shift+H (Instant Solve):', globalShortcut.isRegistered('Control+Shift+H') || globalShortcut.isRegistered('Control+Alt+R'));
   console.log('- Ctrl+Shift+T (Debug Error):', globalShortcut.isRegistered('Control+Shift+T'));
   console.log('- Alt+X (Gemini MCQ):', globalShortcut.isRegistered('Alt+X') || globalShortcut.isRegistered('Alt+Y'));
   console.log('- Ctrl+Shift+S (Stealth):', globalShortcut.isRegistered('Control+Shift+S') || globalShortcut.isRegistered('Control+Alt+S'));
