@@ -77,9 +77,11 @@ Describe what you are looking for or calculating at each step.
 
 End with how the final answer is captured.
 
-Avoid robotic template phrases like: "I'll use X technique", "Brute force is inefficient", "We optimize this", "The intuition is".
+Avoid robotic template phrases like: "I'll use X technique", "Brute force is inefficient", "We optimize this", "The intuition is", "The key insight".
 
 Instead, write naturally like: "So I'm thinking I'll start by...", "While I move through the list, I'll keep track of...", "Once that's done, I can simply...", "Then I'll just return the...".
+
+CRITICAL RULE FOR APPROACH: NEVER use variable names, array indices (like nums[i], array[j], arr[k]), or code-specific jargon in the Approach. Keep it high-level, conceptual, and in extremely easy words. Explain the overall plan of what you are going to do before writing any code.
 
 MUST FORMAT AS 3-5 SHORT BULLET POINTS.
 
@@ -87,7 +89,7 @@ Every sentence should progress the reasoning forward.
 (DO NOT mention time or space complexity here).
 
 Code:
-"I'll follow the function signature given."
+[Say a brief natural sentence like "I'll follow the function signature given."]
 
 C++
 // Write COMPLETE optimal C++ solution here.
@@ -391,9 +393,11 @@ Describe what you are looking for or calculating at each step.
 
 End with how the final answer is captured.
 
-Avoid robotic template phrases like: "I'll use X technique", "Brute force is inefficient", "We optimize this", "The intuition is".
+Avoid robotic template phrases like: "I'll use X technique", "Brute force is inefficient", "We optimize this", "The intuition is", "The key insight".
 
 Instead, write naturally like: "So I'm thinking I'll start by...", "While I move through the list, I'll keep track of...", "Once that's done, I can simply...", "Then I'll just return the...".
+
+CRITICAL RULE FOR APPROACH: NEVER use variable names, array indices (like nums[i], array[j], arr[k]), or code-specific jargon in the Approach. Keep it high-level, conceptual, and in extremely easy words. Explain the overall plan of what you are going to do before writing any code.
 
 MUST FORMAT AS 3-5 SHORT BULLET POINTS.
 
@@ -401,7 +405,7 @@ Every sentence should progress the reasoning forward.
 (DO NOT mention time or space complexity here).
 
 Code:
-"I'll follow the function signature given."
+[Say a brief natural sentence like "I'll follow the function signature given."]
 
 \`\`\`cpp
 // Write COMPLETE optimal C++ solution here.
