@@ -59,19 +59,32 @@ Output: [describe output]
 Goal: [1 sentence core task]
 
 Approach:
-Write EXACTLY 3-5 bullet points. Each bullet must be ONE short sentence (max 12 words).
-No jargon. No theory. Just what you are doing, step by step.
-Model your output on this example (do NOT copy it — use it as a style guide):
+[Explain the solution exactly like a strong candidate speaking during a real technical interview.]
 
-EXAMPLE (Two Sum problem):
-- Place every number and its index into a hash map as we go.
-- For each number, check if its complement already exists in the map.
-- If yes, return both indices immediately.
+The tone should feel: confident, natural, concise, and technically strong.
 
-Now write the actual approach for this problem in the same clean style.
-(DO NOT mention time or space complexity here.)
+MUST start by explaining how you will approach the problem from the beginning using simple, clear language.
 
+The explanation must be a direct verbal map of the Dry Run and Code sections.
 
+The approach must:
+
+Explain the initial strategy and logic.
+
+Detail how you will move through the data (pointers, loops, or recursion).
+
+Describe what you are looking for or calculating at each step.
+
+End with how the final answer is captured.
+
+Avoid robotic template phrases like: "I'll use X technique", "Brute force is inefficient", "We optimize this", "The intuition is".
+
+Instead, write naturally like: "So I'm thinking I'll start by...", "While I move through the list, I'll keep track of...", "Once that's done, I can simply...", "Then I'll just return the...".
+
+MUST FORMAT AS 3-5 SHORT BULLET POINTS.
+
+Every sentence should progress the reasoning forward.
+(DO NOT mention time or space complexity here).
 
 Code:
 "I'll follow the function signature given."
@@ -198,11 +211,20 @@ app.post('/solve-dsa-base64-stream', async (req, res) => {
     const filePath = path.join(uploadDir, filename);
 
     let base64Data = image.startsWith('data:image') ? image.split(',')[1] : image;
+    fs.writeFileSync(filePath, base64Data, 'base64');
 
-    // --- DIRECT VISION SOLVE (One-Shot — No extraction step) ---
-    // Send the raw screenshot directly to Claude Opus with vision.
-    // This is the same approach Cluely uses — zero information loss from OCR.
-    sendSSE('status', { message: '🧠 Solving DSA problem directly from screenshot...' });
+    console.log('[DSA SOLVE] Starting 3-tier vision extraction...');
+    const visionResult = await extractTextWithVision(base64Data, '[DSA SOLVE]');
+    if (!visionResult) {
+      sendSSE('error', { message: 'All vision extraction methods failed (Gemini, GPT-4o, Tesseract).' });
+      res.end();
+      return;
+    }
+    let extractedQuestion = visionResult.text;
+    console.log(`[DSA SOLVE] Extracted via ${visionResult.model}.`);
+
+    sendSSE('extracted', { text: extractedQuestion });
+    sendSSE('status', { message: '🧠 Generating full DSA solution (6 sections)...' });
 
     let contextStr = '';
     if (contextHistory && contextHistory.length > 0) {
@@ -228,17 +250,12 @@ app.post('/solve-dsa-base64-stream', async (req, res) => {
       }
     });
 
-    console.log('[DSA SOLVE] Streaming direct vision solve (image → Claude Opus)...');
+    console.log('[DSA SOLVE] Streaming full 6-section DSA response...');
     let fullResponse = '';
-    let extractedQuestion = '[Solved directly from screenshot — no OCR step]';
 
-    // Pass image directly to model (vision) — one call, full context preserved
     const stream = await dsaModel.stream([
       ['system', DSA_FORCE_PROMPT],
-      ['user', [
-        { type: 'text', text: contextStr + 'You are looking directly at a screenshot of a DSA problem. Apply the FULL 6-section format:' },
-        { type: 'image_url', image_url: { url: `data:image/png;base64,${base64Data}` } }
-      ]]
+      ['user', contextStr + 'Solve the following DSA problem extracted from a screenshot. Apply the FULL 6-section format:\n\n' + extractedQuestion]
     ]);
 
     for await (const chunk of stream) {
