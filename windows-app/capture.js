@@ -407,6 +407,10 @@ async function captureAndProcessStreaming(callbacks = {}) {
 
     const funcEndTime = Date.now();
     console.log(`Total streaming captureAndProcess time: ${funcEndTime - funcStartTime}ms`);
+    console.log('\n================ FULL AI RESPONSE ================\n');
+    console.log(fullText);
+    console.log('\n===================================================\n');
+
 
     // Save to context history
     if (fullText && fullText !== 'No content available') {

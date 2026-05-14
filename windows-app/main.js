@@ -71,8 +71,6 @@ app.on('child-process-gone', (event, details) => {
 let mainWindow = null;
 let tray = null;
 let stealthWindow = null; // Screen-capture-invisible overlay window
-
-
 // Move cursor for MCQ answer by executing the VBScript
 async function moveCursorForAnswer(answerLetter) {
   // DISABLED FOR STEALTH: Auto-mouse movement detection is highly flagged
@@ -989,7 +987,6 @@ async function captureAndDisplay() {
         }
       },
       onChunk: (chunkText, fullTextSoFar) => {
-        // Send each chunk to the overlay for real-time rendering
         if (stealthWindow && !stealthWindow.isDestroyed()) {
           stealthWindow.webContents.send('stealth-stream-chunk', { chunk: chunkText, fullText: fullTextSoFar });
         }
@@ -1362,7 +1359,7 @@ if (!gotTheLock) {
     // ===== END STARTUP CLEANUP =====
 
     createWindow();
-    createStealthWindow(); // Re-enabled: Interview proctoring apps respect setContentProtection(true)
+    createStealthWindow();
 
     console.log('Bypassing setup window - Auto-activating premium access...');
 
