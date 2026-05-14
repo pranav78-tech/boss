@@ -58,6 +58,17 @@ Output: [describe output]
 
 Goal: [1 sentence core task]
 
+Code:
+[Say a brief natural sentence like "I'll follow the function signature given."]
+
+C++
+// Write COMPLETE optimal C++ solution here.
+// RULE 1: Use SHORT, CLEAR names (no i, j, l, r). Use names like 'index', 'left', 'current'.
+// RULE 2: EVERY single line of code MUST have a short comment ABOVE it.
+// RULE 3: Comments act as a teleprompter. They must be exactly what you would SAY out loud while typing the line. Keep them highly natural and conversational.
+// RULE 4: No chaining, no condensed logic. Handle edge cases.
+// RULE 5: ALGORITHM LOGIC: Whenever possible, implement the exact optimal logic and algorithmic structure taught by "Take U Forward" (Striver).
+
 Approach:
 [Explain the solution exactly like a strong candidate speaking during a real technical interview.]
 
@@ -87,17 +98,6 @@ MUST FORMAT AS 3-5 SHORT BULLET POINTS.
 
 Every sentence should progress the reasoning forward.
 (DO NOT mention time or space complexity here).
-
-Code:
-[Say a brief natural sentence like "I'll follow the function signature given."]
-
-C++
-// Write COMPLETE optimal C++ solution here.
-// RULE 1: Use SHORT, CLEAR names (no i, j, l, r). Use names like 'index', 'left', 'current'.
-// RULE 2: EVERY single line of code MUST have a short comment ABOVE it.
-// RULE 3: Comments act as a teleprompter. They must be exactly what you would SAY out loud while typing the line. Keep them highly natural and conversational.
-// RULE 4: No chaining, no condensed logic. Handle edge cases.
-// RULE 5: ALGORITHM LOGIC: Whenever possible, implement the exact optimal logic and algorithmic structure taught by "Take U Forward" (Striver).
 
 Complexity:
 
@@ -374,6 +374,18 @@ Output: [describe output]
 
 Goal: [1 sentence core task]
 
+Code:
+[Say a brief natural sentence like "I'll follow the function signature given."]
+
+\`\`\`cpp
+// Write COMPLETE optimal C++ solution here.
+// RULE 1: Use SHORT, CLEAR names (no i, j, l, r). Use names like 'index', 'left', 'current'.
+// RULE 2: EVERY single line of code MUST have a short comment ABOVE it.
+// RULE 3: Comments act as a teleprompter. They must be exactly what you would SAY out loud while typing the line. Keep them highly natural and conversational.
+// RULE 4: No chaining, no condensed logic. Handle edge cases.
+// RULE 5: ALGORITHM LOGIC: Whenever possible, implement the exact optimal logic and algorithmic structure taught by "Take U Forward" (Striver).
+\`\`\`
+
 Approach:
 [Explain the solution exactly like a strong candidate speaking during a real technical interview.]
 
@@ -403,18 +415,6 @@ MUST FORMAT AS 3-5 SHORT BULLET POINTS.
 
 Every sentence should progress the reasoning forward.
 (DO NOT mention time or space complexity here).
-
-Code:
-[Say a brief natural sentence like "I'll follow the function signature given."]
-
-\`\`\`cpp
-// Write COMPLETE optimal C++ solution here.
-// RULE 1: Use SHORT, CLEAR names (no i, j, l, r). Use names like 'index', 'left', 'current'.
-// RULE 2: EVERY single line of code MUST have a short comment ABOVE it.
-// RULE 3: Comments act as a teleprompter. They must be exactly what you would SAY out loud while typing the line. Keep them highly natural and conversational.
-// RULE 4: No chaining, no condensed logic. Handle edge cases.
-// RULE 5: ALGORITHM LOGIC: Whenever possible, implement the exact optimal logic and algorithmic structure taught by "Take U Forward" (Striver).
-\`\`\`
 
 Complexity:
 
