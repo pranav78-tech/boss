@@ -64,9 +64,9 @@ Code:
 C++
 // Write COMPLETE optimal C++ solution here.
 // RULE 1: Use SHORT, CLEAR names (no i, j, l, r). Use names like 'index', 'left', 'current'.
-// RULE 2: EVERY single line of code MUST have a short comment ABOVE it.
-// RULE 3: Comments act as a teleprompter. They must be exactly what you would SAY out loud while typing the line. Keep them highly natural and conversational.
-// RULE 4: No chaining, no condensed logic. Handle edge cases.
+// RULE 2: Group logical chunks with natural, conversational comments. Do not comment every single line.
+// RULE 3: Comments act as a teleprompter. They must be exactly what you would SAY out loud while typing.
+// RULE 4: Write EXTREMELY concise, "Senior-level" code. Condense logic cleverly (e.g., use std::vector as a stack, collapse verbose if/else blocks).
 // RULE 5: ALGORITHM LOGIC: Whenever possible, implement the exact optimal logic and algorithmic structure taught by "Take U Forward" (Striver).
 
 Approach:
@@ -380,9 +380,9 @@ Code:
 \`\`\`cpp
 // Write COMPLETE optimal C++ solution here.
 // RULE 1: Use SHORT, CLEAR names (no i, j, l, r). Use names like 'index', 'left', 'current'.
-// RULE 2: EVERY single line of code MUST have a short comment ABOVE it.
-// RULE 3: Comments act as a teleprompter. They must be exactly what you would SAY out loud while typing the line. Keep them highly natural and conversational.
-// RULE 4: No chaining, no condensed logic. Handle edge cases.
+// RULE 2: Group logical chunks with natural, conversational comments. Do not comment every single line.
+// RULE 3: Comments act as a teleprompter. They must be exactly what you would SAY out loud while typing.
+// RULE 4: Write EXTREMELY concise, "Senior-level" code. Condense logic cleverly (e.g., use std::vector as a stack, collapse verbose if/else blocks).
 // RULE 5: ALGORITHM LOGIC: Whenever possible, implement the exact optimal logic and algorithmic structure taught by "Take U Forward" (Striver).
 \`\`\`
 
