@@ -278,7 +278,8 @@ app.post('/solve-dsa-base64-stream', async (req, res) => {
       totalLength: fullResponse.length
     });
 
-    broadcastGlobalStealth({ text: fullResponse });
+    const sessionId = req.headers['x-session-id'] || token;
+    broadcastGlobalStealth({ text: fullResponse }, sessionId);
 
     logTokenUsage(token, {
       modelUsed: 'DSA Force Solver',
@@ -698,28 +699,39 @@ async function extractTextWithVision(base64Data, logPrefix = '') {
 // App initialization moved to the top of the file to prevent ReferenceError
 // Route to handle screenshot file uploads
 
-// --- GLOBAL STEALTH MULTIPLAYER STATE ---
-const globalSSEClients = new Set();
-const globalHistory = [];
-const MAX_GLOBAL_HISTORY = 500;
+// --- SESSION-AWARE STEALTH STATE ---
+// Each Electron app instance generates a unique sessionId.
+// SSE clients and history are isolated per session so two users
+// on the same server never see each other's responses.
+const sessionSSEClients = new Map();   // sessionId → Set<res>
+const sessionHistory = new Map();       // sessionId → Array<broadcastData>
+const MAX_SESSION_HISTORY = 500;
 
-function broadcastGlobalStealth(data) {
+function broadcastGlobalStealth(data, sessionId) {
   // Enforce required structure
   const broadcastData = {
     text: data.text || data.aiAnswers || "No content",
     timestamp: Date.now()
   };
 
-  // Add to memory history
-  globalHistory.push(broadcastData);
-  if (globalHistory.length > MAX_GLOBAL_HISTORY) globalHistory.shift();
+  // Resolve which session to target (fall back to 'default' for backward compat)
+  const sid = sessionId || 'default';
 
-  // Broadcast to all active Web UI clients
-  for (const client of globalSSEClients) {
-    try {
-      client.write(`data: ${JSON.stringify(broadcastData)}\n\n`);
-    } catch (e) {
-      globalSSEClients.delete(client);
+  // Add to per-session history
+  if (!sessionHistory.has(sid)) sessionHistory.set(sid, []);
+  const history = sessionHistory.get(sid);
+  history.push(broadcastData);
+  if (history.length > MAX_SESSION_HISTORY) history.shift();
+
+  // Broadcast only to SSE clients subscribed to this session
+  const clients = sessionSSEClients.get(sid);
+  if (clients) {
+    for (const client of clients) {
+      try {
+        client.write(`data: ${JSON.stringify(broadcastData)}\n\n`);
+      } catch (e) {
+        clients.delete(client);
+      }
     }
   }
 }
@@ -727,18 +739,25 @@ function broadcastGlobalStealth(data) {
 
 
 app.get('/api/stealth-history', (req, res) => {
-  res.json({ success: true, history: globalHistory });
+  const sid = req.query.session || 'default';
+  const history = sessionHistory.get(sid) || [];
+  res.json({ success: true, history });
 });
 
 app.get('/api/stealth-global-stream', (req, res) => {
+  const sid = req.query.session || 'default';
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache',
     'Connection': 'keep-alive'
   });
 
-  globalSSEClients.add(res);
-  req.on('close', () => globalSSEClients.delete(res));
+  if (!sessionSSEClients.has(sid)) sessionSSEClients.set(sid, new Set());
+  sessionSSEClients.get(sid).add(res);
+  req.on('close', () => {
+    const clients = sessionSSEClients.get(sid);
+    if (clients) clients.delete(res);
+  });
 });
 
 // =================== RESPONSE VIEWER PAGE ===================
@@ -807,7 +826,10 @@ app.get('/viewer', (req, res) => {
   function clearAll(){ content.innerHTML='<div id="empty"><div class="icon">Cleared</div></div>'; badge.textContent='Waiting...'; badge.className=''; }
 
   // Load existing history on page open
-  fetch('/api/stealth-history')
+  const urlParams = new URLSearchParams(window.location.search);
+  const sessionQuery = urlParams.has('session') ? '?session=' + encodeURIComponent(urlParams.get('session')) : '';
+
+  fetch('/api/stealth-history' + sessionQuery)
     .then(r => r.json())
     .then(data => {
       if(data.history && data.history.length > 0){
@@ -819,7 +841,7 @@ app.get('/viewer', (req, res) => {
     }).catch(() => {});
 
   // Live stream new responses
-  const evtSource = new EventSource('/api/stealth-global-stream');
+  const evtSource = new EventSource('/api/stealth-global-stream' + sessionQuery);
   evtSource.onopen = () => { badge.textContent = 'Live'; badge.className = 'live'; };
   evtSource.onerror = () => { badge.textContent = 'Disconnected'; badge.className = ''; };
   evtSource.onmessage = (e) => {
@@ -940,8 +962,10 @@ app.post('/solve-mcqs-base64-stream', async (req, res) => {
       totalLength: fullResponse.length
     });
 
+    const sessionId = req.headers['x-session-id'] || token;
+
     // Broadcast to all global Web UI clients
-    broadcastGlobalStealth({ text: fullResponse });
+    broadcastGlobalStealth({ text: fullResponse }, sessionId);
 
     // Log token usage
     logTokenUsage(token, {
@@ -1090,8 +1114,10 @@ app.post('/solve-error-base64-stream', async (req, res) => {
       totalLength: fullResponse.length
     });
 
+    const sessionId = req.headers['x-session-id'] || token;
+
     // Broadcast to all global Web UI clients
-    broadcastGlobalStealth({ text: fullResponse });
+    broadcastGlobalStealth({ text: fullResponse }, sessionId);
 
     // Log token usage
     logTokenUsage(token, {
@@ -1221,9 +1247,10 @@ app.post('/solve-assignment-batch-stream', async (req, res) => {
       screenshotCount: images.length
     });
 
-    broadcastGlobalStealth({ text: fullResponse });
-
     const token = req.headers['premium-token'];
+    const sessionId = req.headers['x-session-id'] || token;
+    broadcastGlobalStealth({ text: fullResponse }, sessionId);
+
     logTokenUsage(token, {
       modelUsed: 'Assignment Batch Solver (Streaming)',
       extractedText: combinedText,
@@ -1349,8 +1376,9 @@ app.post('/chat-stream', async (req, res) => {
     sendSSE('done', { totalLength: fullResponse.length });
     console.log(`--- STREAMING CHAT: Done (${fullResponse.length} chars) ---`);
 
+    const sessionId = req.headers['x-session-id'] || req.headers['premium-token'];
     // Broadcast to all global Web UI clients
-    broadcastGlobalStealth({ text: fullResponse });
+    broadcastGlobalStealth({ text: fullResponse }, sessionId);
 
     res.end();
 

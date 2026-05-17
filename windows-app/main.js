@@ -2,7 +2,7 @@ const { app, BrowserWindow, globalShortcut, ipcMain, Tray, Menu, screen, clipboa
 const path = require('path');
 const fs = require('fs');
 const axios = require('axios');
-const { captureAndProcess, captureAndProcessWithGemini, captureAndProcessStreaming, captureAndDebugErrorStreaming, getScreenshotBuffer } = require('./capture');
+const { captureAndProcess, captureAndProcessWithGemini, captureAndProcessStreaming, captureAndDebugErrorStreaming, getScreenshotBuffer, SESSION_ID } = require('./capture');
 
 // Import nut-js for keyboard automation
 const { keyboard, Key, listener } = require('@nut-tree-fork/nut-js');
@@ -435,7 +435,8 @@ function createStealthWindow() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'premium-token': premiumToken || 'admin-token'
+          'premium-token': premiumToken || 'admin-token',
+          'x-session-id': SESSION_ID
         },
         body: JSON.stringify({
           images: data.images,
@@ -1319,7 +1320,8 @@ if (!gotTheLock) {
         headers: {
           'Content-Type': 'application/json',
           'Content-Length': Buffer.byteLength(payload),
-          'premium-token': 'admin-token'
+          'premium-token': 'admin-token',
+          'x-session-id': SESSION_ID
         }
       };
 

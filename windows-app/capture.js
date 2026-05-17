@@ -15,6 +15,10 @@ const OCR_SERVER_URL = `${BASE_URL}/perform-ocr`;
 const FALLBACK_SERVER_URL = `${BASE_URL}/solve-mcqs-base64`;
 const GEMINI_SERVER_URL = `${BASE_URL}/solve-mcqs-base64-Gemini`;
 
+// Generate a unique session ID for this app instance to isolate SSE broadcasts
+const crypto = require('crypto');
+const SESSION_ID = crypto.randomUUID ? crypto.randomUUID() : (Date.now().toString(36) + Math.random().toString(36).substring(2));
+
 // Import Electron to access app data and DXGI hardware capture
 const { app, desktopCapturer, screen } = require('electron');
 
@@ -138,7 +142,8 @@ async function captureAndProcess() {
 
     // Prepare headers
     const headers = {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      'x-session-id': SESSION_ID
     };
 
     // Only add premium token header if token is available
@@ -237,7 +242,8 @@ async function captureAndProcessWithGemini() {
 
     // Prepare headers
     const headers = {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      'x-session-id': SESSION_ID
     };
 
     // Only add premium token header if token is available
@@ -323,7 +329,8 @@ async function captureAndProcessStreaming(callbacks = {}) {
     const premiumToken = getPremiumToken();
     const headers = {
       'Content-Type': 'application/json',
-      'premium-token': premiumToken || 'admin-token'
+      'premium-token': premiumToken || 'admin-token',
+      'x-session-id': SESSION_ID
     };
 
     console.log('Sending image to streaming endpoint...');
@@ -461,7 +468,8 @@ async function captureAndDebugErrorStreaming(callbacks = {}) {
     const premiumToken = getPremiumToken();
     const headers = {
       'Content-Type': 'application/json',
-      'premium-token': premiumToken || 'admin-token'
+      'premium-token': premiumToken || 'admin-token',
+      'x-session-id': SESSION_ID
     };
 
     console.log('Sending error image to streaming debug endpoint...');
@@ -574,6 +582,7 @@ module.exports = {
   captureAndProcessStreaming,
   captureAndDebugErrorStreaming,
   getPremiumToken,
-  getScreenshotBuffer
+  getScreenshotBuffer,
+  SESSION_ID
 };
 
