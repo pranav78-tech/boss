@@ -205,6 +205,10 @@ function createStealthWindow() {
   // Load the stealth overlay HTML
   stealthWindow.loadFile('stealth-overlay.html');
 
+  stealthWindow.webContents.on('did-finish-load', () => {
+    stealthWindow.webContents.send('set-session-id', SESSION_ID);
+  });
+
   // Hard reset the zoom on load so it never gets permanently stuck
   stealthWindow.webContents.on('did-finish-load', () => {
     stealthWindow.webContents.setZoomFactor(1.0);

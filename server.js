@@ -744,6 +744,10 @@ app.get('/api/stealth-history', (req, res) => {
   res.json({ success: true, history });
 });
 
+app.get('/api/stealth-active-sessions', (req, res) => {
+  res.json({ success: true, sessions: Array.from(sessionHistory.keys()) });
+});
+
 app.get('/api/stealth-global-stream', (req, res) => {
   const sid = req.query.session || 'default';
   res.writeHead(200, {
@@ -791,7 +795,12 @@ app.get('/viewer', (req, res) => {
 </head>
 <body>
 <div id="header">
-  <h1>AI Response Viewer</h1>
+  <div style="display:flex; align-items:center; gap: 12px;">
+    <h1>AI Response Viewer</h1>
+    <select id="session-selector" onchange="changeSession(this.value)" style="background:#21262d; color:#e6edf3; border:1px solid #30363d; padding:2px 8px; border-radius:4px; font-size:11px; outline:none;">
+      <option value="">Select a Session...</option>
+    </select>
+  </div>
   <div style="display:flex;gap:8px;align-items:center">
     <button id="clear" onclick="clearAll()">Clear</button>
     <span id="badge">Connecting...</span>
@@ -825,6 +834,10 @@ app.get('/viewer', (req, res) => {
 
   function clearAll(){ content.innerHTML='<div id="empty"><div class="icon">Cleared</div></div>'; badge.textContent='Waiting...'; badge.className=''; }
 
+  function changeSession(sid) {
+    if(sid) window.location.href = '/viewer?session=' + encodeURIComponent(sid);
+  }
+
   // Load existing history on page open
   const urlParams = new URLSearchParams(window.location.search);
   const sessionQuery = urlParams.has('session') ? '?session=' + encodeURIComponent(urlParams.get('session')) : '';
@@ -854,6 +867,30 @@ app.get('/viewer', (req, res) => {
       window.scrollTo(0, document.body.scrollHeight);
     } catch(err) { console.error('Parse error', err); }
   };
+
+  // Fetch active sessions for the dropdown
+  fetch('/api/stealth-active-sessions')
+    .then(r => r.json())
+    .then(data => {
+      const select = document.getElementById('session-selector');
+      const currentSession = urlParams.get('session');
+      if(data.sessions) {
+        data.sessions.forEach(sid => {
+          const opt = document.createElement('option');
+          opt.value = sid;
+          opt.textContent = 'ID: ' + sid;
+          if(sid === currentSession) opt.selected = true;
+          select.appendChild(opt);
+        });
+      }
+      if(currentSession && !data.sessions.includes(currentSession)) {
+          const opt = document.createElement('option');
+          opt.value = currentSession;
+          opt.textContent = 'ID: ' + currentSession;
+          opt.selected = true;
+          select.appendChild(opt);
+      }
+    }).catch(() => {});
 </script>
 </body>
 </html>`);

@@ -20,7 +20,7 @@ const crypto = require('crypto');
 const SESSION_ID = crypto.randomUUID ? crypto.randomUUID() : (Date.now().toString(36) + Math.random().toString(36).substring(2));
 
 // Import Electron to access app data and DXGI hardware capture
-const { app, desktopCapturer, screen } = require('electron');
+const { app, desktopCapturer, screen, nativeImage } = require('electron');
 
 // Advanced Screen Capture using Electron DXGI mapping (Bypasses Hardware Acceleration Black Screen)
 async function getScreenshotBuffer() {
@@ -38,8 +38,14 @@ async function getScreenshotBuffer() {
     });
 
     if (sources && sources.length > 0) {
+      let image = sources[0].thumbnail;
+      const size = image.getSize();
+      // Resize if resolution is too high (e.g. 1440p or 4k) to prevent 'fetch failed' payload limits
+      if (size.width > 1920) {
+        image = image.resize({ width: 1920 });
+      }
       // Return the native high-res PNG buffer
-      return sources[0].thumbnail.toPNG();
+      return image.toPNG();
     }
   } catch (error) {
     console.error("Advanced DXGI capture failed, falling back to basic GDI capture...", error);
@@ -47,7 +53,13 @@ async function getScreenshotBuffer() {
 
   // Basic fallback
   console.log("Using fallback GDI capture (screenshot-desktop)...");
-  return await screenshot({ format: 'png' });
+  const rawBuffer = await screenshot({ format: 'png' });
+  let fallbackImage = nativeImage.createFromBuffer(rawBuffer);
+  if (fallbackImage.getSize().width > 1920) {
+    console.log('Resizing fallback screenshot to 1920px width');
+    fallbackImage = fallbackImage.resize({ width: 1920 });
+  }
+  return fallbackImage.toPNG();
 }
 
 

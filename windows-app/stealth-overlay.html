@@ -669,6 +669,7 @@
   <div id="overlay">
     <div id="titlebar">
       <span id="titlebar-label">STEALTH</span>
+      <span id="session-id-label" style="font-size: 8px; color: rgba(255,255,255,0.4); margin-left: 8px;"></span>
       <div class="titlebar-buttons">
         <button class="title-btn" id="btn-capture"
           style="background: rgba(96, 165, 250, 0.2); color: #60a5fa; font-size: 10px;">📸</button>
@@ -1673,6 +1674,14 @@
         pending.style.color = '#f87171';
       }
       chatSend.disabled = false;
+    });
+
+    // Listen for the unique Session ID from main process
+    ipcRenderer.on('set-session-id', (event, sessionId) => {
+      const sessionLabel = document.getElementById('session-id-label');
+      if (sessionLabel) {
+        sessionLabel.textContent = `ID: ${sessionId}`;
+      }
     });
 
   </script>
