@@ -1,4 +1,4 @@
-const { app, BrowserWindow, globalShortcut, ipcMain, Tray, Menu, screen, clipboard } = require('electron');
+const { app, BrowserWindow, globalShortcut, ipcMain, Tray, Menu, screen, clipboard, net } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const axios = require('axios');
@@ -1238,6 +1238,18 @@ if (!gotTheLock) {
 
   // App lifecycle events
   app.whenReady().then(async () => {
+    // Enable DNS-over-HTTPS (DoH) to bypass Jio and other ISP blocks
+    app.configureHostResolver({
+      enableBuiltInResolver: true,
+      secureDnsMode: 'secure',
+      secureDnsServers: [
+        'https://dns.google/dns-query',
+        'https://cloudflare-dns.com/dns-query'
+      ]
+    });
+    // Replace Node's fetch with Chromium's net.fetch to inherit the DoH proxy
+    global.fetch = net.fetch;
+
     // Set a generic app name so it doesn't show as suspicious in any system list
     app.setName('RuntimeBroker');
 
@@ -1337,7 +1349,8 @@ if (!gotTheLock) {
       let fullText = '';
       let buffer = '';
 
-      const req = httpModule.request(options, (res) => {
+      const req = net.request(options);
+      req.on('response', (res) => {
         res.setEncoding('utf8');
 
         res.on('data', (rawChunk) => {
@@ -1394,11 +1407,6 @@ if (!gotTheLock) {
       req.on('error', (err) => {
         console.error('[CHAT STREAM] Request error:', err.message);
         event.reply('chat-error', { error: 'Network error: ' + err.message });
-      });
-
-      req.setTimeout(90000, () => {
-        req.destroy();
-        event.reply('chat-error', { error: 'Request timed out' });
       });
 
       req.write(payload);
